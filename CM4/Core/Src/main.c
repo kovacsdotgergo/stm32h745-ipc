@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "time_meas.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,7 +75,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
 
@@ -365,11 +365,16 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  uint32_t runTime;
+  htim5.Instance = TIM5;
   /* Infinite loop */
   for(;;)
   {
+    // startTime = __HAL_TIM_GET_COUNTER(&htim5);
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
     osDelay(1000);
+    endTime = __HAL_TIM_GET_COUNTER(&htim5);
+    runTime = endTime - startTime - runtimeOffset;
   }
   /* USER CODE END 5 */
 }

@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "time_meas.h"
 
 /* USER CODE END Includes */
 
@@ -496,8 +497,7 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  uint32_t startTime, endTime, runTime;
-  const uint32_t runtimeOffset = 24;
+  uint32_t runTime;
   float_t fRunTime;
   /* Infinite loop */
   for(;;)
@@ -506,7 +506,7 @@ void StartDefaultTask(void *argument)
 
 	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
     osDelay(1000);
-    endTime = __HAL_TIM_GET_COUNTER(&htim5);
+    // endTime = __HAL_TIM_GET_COUNTER(&htim5);
     runTime = endTime - startTime - runtimeOffset;
     fRunTime	= runTime / 72000000.0F;
   }
