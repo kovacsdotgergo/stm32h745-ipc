@@ -30,8 +30,8 @@
 #ifndef MESSAGE_BUFFER_AMP_H
 #define MESSAGE_BUFFER_AMP_H
 
-#include "message_buffer.h"
 #include "FreeRTOS.h"
+#include "message_buffer.h"
 #include "stdint.h"
 
 /* Enough four 4 8 byte strings, plus the additional 4 bytes per message

@@ -24,7 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "time_meas.h"
-
+#include "mc_message_buffer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -191,6 +191,13 @@ Error_Handler();
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
+  const uint8_t mainCHECK_TASK_PRIORITY = configMAX_PRIORITIES - 3;
+  const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
+  xTaskCreate(prvCheckTask, 'Check', configMINIMAL_STACK_SIZE, \
+      NULL, mainCHECK_TASK_PRIORITY, NULL);
+  xTaskCreate(prvCore1Task, 'AMPCore1', configMINIMAL_STACK_SIZE, \
+      NULL, mainAMP_TASK_PRIORITY, NULL);
+  
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 

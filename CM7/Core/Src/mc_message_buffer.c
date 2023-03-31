@@ -31,7 +31,7 @@ void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
 
 /* This task will periodically send data to tasks running on Core 2
    via message buffers. */
-static void prvCore1Task( void *pvParameters )
+void prvCore1Task( void *pvParameters )
 {
   BaseType_t x;
   uint32_t ulNextValue = 0;
@@ -71,7 +71,7 @@ static void prvCore1Task( void *pvParameters )
 /* 
   Check if the application still running
 */
-static BaseType_t xAreMessageBufferAMPTasksStillRunning( void )
+BaseType_t xAreMessageBufferAMPTasksStillRunning( void )
 {
   static uint32_t ulLastCycleCounters[ mbaNUMBER_OF_CORE_2_TASKS ] = { 0 };
   BaseType_t xDemoStatus = pdPASS;
@@ -96,7 +96,7 @@ static BaseType_t xAreMessageBufferAMPTasksStillRunning( void )
 
 /* Check task function 
    */
-static void prvCheckTask( void *pvParameters )
+void prvCheckTask( void *pvParameters )
 {
   TickType_t xNextWakeTime;
   const TickType_t xCycleFrequency = pdMS_TO_TICKS( 2000UL );
@@ -122,7 +122,7 @@ static void prvCheckTask( void *pvParameters )
     {
       /* Application still running */
       HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin)
+      HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     }
   }
 }
