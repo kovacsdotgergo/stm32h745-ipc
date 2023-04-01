@@ -199,9 +199,9 @@ Error_Handler();
   /* USER CODE BEGIN RTOS_THREADS */
   const uint8_t mainCHECK_TASK_PRIORITY = configMAX_PRIORITIES - 3;
   const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
-  xTaskCreate(prvCheckTask, 'Check', configMINIMAL_STACK_SIZE, \
+  xTaskCreate(prvCheckTask, "Check", configMINIMAL_STACK_SIZE, \
       NULL, mainCHECK_TASK_PRIORITY, NULL);
-  xTaskCreate(prvCore1Task, 'AMPCore1', configMINIMAL_STACK_SIZE, \
+  xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, NULL);
   
   /* add threads, ... */
@@ -485,7 +485,17 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LD1_Pin */
+  GPIO_InitStruct.Pin = LD1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LD1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;

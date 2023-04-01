@@ -48,8 +48,16 @@ MEMORY
   FLASH  (rx)    : ORIGIN = 0x08000000, LENGTH = 1024K    /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
   DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
   RAM_D2 (xrw)   : ORIGIN = 0x30000000, LENGTH = 288K
-  RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
+  /* RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K*/
   ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
+  /* Sections used for shared variables */
+  RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 4
+  RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000004, LENGTH = 8
+  RAM_D3_Z3 (xrw)       : ORIGIN = 0x3800000c, LENGTH = 68
+  RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000050, LENGTH = 80
+  RAM_D3_Z5 (xrw)       : ORIGIN = 0x380000A0, LENGTH = 95
+  RAM_D3_Z6 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
+  RAM_D3_Z7 (xrw)       : ORIGIN = 0x38000200, LENGTH = 256
 }
 
 /* Sections */
@@ -183,6 +191,111 @@ SECTIONS
     libm.a ( * )
     libgcc.a ( * )
   }
+
+ /* used by the startup to initialize data */
+  _siRAM_D3_Z1 = LOADADDR(.RAM_D3_Z1);
+
+  /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z1 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z1 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z1)           /* .data sections */
+    *(.RAM_D3_Z1*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z1 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z1 AT> FLASH 
+  
+     /* used by the startup to initialize data */
+  _siRAM_D3_Z2 = LOADADDR(.RAM_D3_Z2);
+
+  /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z2 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z2 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z2)           /* .data sections */
+    *(.RAM_D3_Z2*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z2 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z2 AT> FLASH 
+
+       /* used by the startup to initialize data */
+  _siRAM_D3_Z3 = LOADADDR(.RAM_D3_Z3);
+
+  /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z3 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z3 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z3)           /* .data sections */
+    *(.RAM_D3_Z3*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z3 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z3 AT> FLASH 
+
+         /* used by the startup to initialize data */
+  _siRAM_D3_Z4 = LOADADDR(.RAM_D3_Z4);
+
+  /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z4 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z4 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z4)           /* .data sections */
+    *(.RAM_D3_Z4*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z4 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z4 AT> FLASH 
+
+         /* used by the startup to initialize data */
+  _siRAM_D3_Z5 = LOADADDR(.RAM_D3_Z5); 
+ /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z5 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z5 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z5)           /* .data sections */
+    *(.RAM_D3_Z5*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z5 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z5 AT> FLASH 
+
+  
+       /* used by the startup to initialize data */
+  _siRAM_D3_Z6 = LOADADDR(.RAM_D3_Z6); 
+ /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z6 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z6 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z6)           /* .data sections */
+    *(.RAM_D3_Z6*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z6 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z6 AT> FLASH 
+
+  
+       /* used by the startup to initialize data */
+  _siRAM_D3_Z7 = LOADADDR(.RAM_D3_Z7); 
+ /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z7 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z7 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z7)           /* .data sections */
+    *(.RAM_D3_Z7*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z7 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z7 AT> FLASH 
+  /* End of own sections */
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
