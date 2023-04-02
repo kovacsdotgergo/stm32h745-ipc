@@ -136,7 +136,19 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
+  sensitive to rising edge : Configured only once */
+  HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
 
+  /* Create control message buffer */
+  xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
+  /* Create data message buffer */
+  BaseType_t x;
+  for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
+  {
+    xDataMessageBuffers[ x ] = xMessageBufferCreateStatic( mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[x][0], &xStreamBufferStruct[x]);
+    configASSERT( xDataMessageBuffers[ x ] );
+  }
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -517,7 +529,7 @@ static void MX_GPIO_Init(void)
   by this function, then this is a recursive call, and the function can just
   exit without taking further action.
 */
-static void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
+void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
 {
   MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) xUpdatedMessageBuffer;
   

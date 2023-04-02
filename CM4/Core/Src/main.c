@@ -24,6 +24,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "time_meas.h"
+#include "MessageBufferAMP.h"
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,13 +82,19 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 
+/* Set to pdFALSE if any errors are detected.  Used to inform the check task
+that something might be wrong. */
+BaseType_t xDemoStatus = pdPASS;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+static void prvCore2Tasks( void *pvParameters );
+static void prvCore2InterruptHandler( void );
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -124,7 +133,13 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  
+  if (( xControlMessageBuffer == NULL )|( xDataMessageBuffers[0] == NULL ) | ( xDataMessageBuffers[1] == NULL ))
+  {
+    Error_Handler();
+  }
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */
@@ -161,6 +176,19 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  BaseType_t x;
+  for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
+  {    
+    /* Pass the loop counter into the created task using the task's
+    parameter.  The task then uses the value as an index into the
+    ulCycleCounters and xDataMessageBuffers arrays. */
+    xTaskCreate( prvCore2Tasks,
+                "AMPCore2",
+                configMINIMAL_STACK_SIZE,
+                ( void * ) x,
+                tskIDLE_PRIORITY + 1,
+                NULL );
+  }
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -326,7 +354,85 @@ void MX_USART3_UART_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* Own function definitions ---------------------------------------------*/
+static void prvCore2Tasks( void *pvParameters )
+{
+  BaseType_t x;
+  size_t xReceivedBytes;
+  uint32_t ulNextValue = 0;
+  char cExpectedString[ 15 ];
+  char cReceivedString[ 15 ];
+  
+  /* The index into the xDataMessageBuffers and ulLoopCounter arrays is
+  passed into this task using the task's parameter. */
+  x = ( BaseType_t ) pvParameters;
+  configASSERT( x < mbaNUMBER_OF_CORE_2_TASKS );
+  
+  for( ;; )
+  {
+    /* Create the string that is expected to be received this time round. */
+    sprintf( cExpectedString, "%lu", ( unsigned long ) ulNextValue );
+    
+    /* Wait to receive the next message from core 1. */
+    memset( cReceivedString, 0x00, sizeof( cReceivedString ) );
+    xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[ x ],
+                                            cReceivedString,
+                                            sizeof( cReceivedString ),
+                                            portMAX_DELAY );
+    
+    /* Check the number of bytes received was as expected. */
+    configASSERT( xReceivedBytes == strlen( cExpectedString ) );
+    
+    /* If the received string matches that expected then increment the loop
+    counter so the check task knows this task is still running. */
+    if( strcmp( cReceivedString, cExpectedString ) == 0 )
+    {
+      ( ulCycleCounters[ x ] )++;
+    }
+    else
+    {
+      xDemoStatus = pdFAIL;
+    }
+    
+    /* Expect the next string in sequence the next time around. */
+    ulNextValue++;
+  }
+}
 
+/* Handler for the interrupts that are triggered on core 1 but execute on core 2. */
+static void prvCore2InterruptHandler( void )
+{
+  MessageBufferHandle_t xUpdatedMessageBuffer;
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  
+  /* xControlMessageBuffer contains the handle of the message buffer that
+  contains data. */
+  if( xMessageBufferReceiveFromISR( xControlMessageBuffer,
+                                   &xUpdatedMessageBuffer,
+                                   sizeof( xUpdatedMessageBuffer ),
+                                   &xHigherPriorityTaskWoken ) == sizeof( xUpdatedMessageBuffer ) )
+  {
+    /* Call the API function that sends a notification to any task that is
+    blocked on the xUpdatedMessageBuffer message buffer waiting for data to
+    arrive. */
+    xMessageBufferSendCompletedFromISR( xUpdatedMessageBuffer, &xHigherPriorityTaskWoken );
+  }
+  
+  /* Normal FreeRTOS yield from interrupt semantics, where
+  xHigherPriorityTaskWoken is initialized to pdFALSE and will then get set to
+  pdTRUE if the interrupt safe API unblocks a task that has a priority above
+  that of the currently executing task. */
+  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
+/* */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  prvCore2InterruptHandler();
+  HAL_EXTI_D2_ClearFlag(EXTI_LINE0);
+}
+
+/* End of own function definitions --------------------------------------*/
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */

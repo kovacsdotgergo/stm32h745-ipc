@@ -2,6 +2,7 @@
     "files.associations": {
         "cmsis_os.h": "c",
         "main.h": "c",
-        "mc_message_buffer.h": "c"
+        "mc_message_buffer.h": "c",
+        "cstdio": "c"
     }
 }
