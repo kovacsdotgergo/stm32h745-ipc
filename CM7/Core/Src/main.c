@@ -664,13 +664,13 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    startTime = __HAL_TIM_GET_COUNTER(&htim5);
+    // startTime = __HAL_TIM_GET_COUNTER(&htim5);
 
-	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
-    osDelay(1000);
-    // endTime = __HAL_TIM_GET_COUNTER(&htim5);
-    runTime = endTime - startTime - runtimeOffset;
-    fRunTime	= runTime / 72000000.0F;
+	// HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
+  osDelay(1000);
+  // // endTime = __HAL_TIM_GET_COUNTER(&htim5);
+  // runTime = endTime - startTime - runtimeOffset;
+  // fRunTime	= runTime / 72000000.0F;
   }
   /* USER CODE END 5 */
 }

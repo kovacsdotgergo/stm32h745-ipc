@@ -451,10 +451,10 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
     // startTime = __HAL_TIM_GET_COUNTER(&htim5);
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
     osDelay(1000);
-    endTime = __HAL_TIM_GET_COUNTER(&htim5);
-    runTime = endTime - startTime - runtimeOffset;
+    // endTime = __HAL_TIM_GET_COUNTER(&htim5);
+    // runTime = endTime - startTime - runtimeOffset;
   }
   /* USER CODE END 5 */
 }
