@@ -102,7 +102,6 @@ void StartDefaultTask(void *argument);
 static void prvCore1Task( void *pvParameters );
 static void prvCheckTask( void *pvParameters );
 static BaseType_t xAreMessageBufferAMPTasksStillRunning( void );
-static void prvUartTestTask( void *pvParameters );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -145,12 +144,8 @@ int main(void)
   /* Create control message buffer */
   xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
   /* Create data message buffer */
-  BaseType_t x;
-  for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
-  {
-    xDataMessageBuffers[ x ] = xMessageBufferCreateStatic( mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[x][0], &xStreamBufferStruct[x]);
-    configASSERT( xDataMessageBuffers[ x ] );
-  }
+  xDataMessageBuffers = xMessageBufferCreateStatic( mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0], &xStreamBufferStruct);
+  configASSERT( xDataMessageBuffers );
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -218,8 +213,6 @@ Error_Handler();
       NULL, mainCHECK_TASK_PRIORITY, NULL);
   xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, NULL);
-  xTaskCreate(prvUartTestTask, "UART Test", configMINIMAL_STACK_SIZE, \
-      NULL, mainUART_TEST_TASK_PRIORITY, NULL);
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -560,13 +553,24 @@ static void prvCore1Task( void *pvParameters )
   BaseType_t x;
   uint32_t ulNextValue = 0;
   const TickType_t xDelay = pdMS_TO_TICKS( 250 );
+  const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
   char cString[ 15 ];
-  
+  const uint8_t UART_INVALID_VALUE = 255;
+  uint8_t uartInputBuffer;
   /* Remove warning about unused parameters. */
   ( void ) pvParameters;
   
   for( ;; )
   {
+    /* Waiting for a start signal*/
+    do {
+      uartInputBuffer = UART_INVALID_VALUE;
+      HAL_UART_Receive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
+      if(uartInputBuffer != UART_INVALID_VALUE){
+        HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
+      }
+      vTaskDelay(uartDelay);
+    } while(uartInputBuffer != 's');
     /* Create the next string to send.  The value is incremented on each
     loop iteration, and the length of the string changes as the number of
     digits in the value increases. */
@@ -577,16 +581,13 @@ static void prvCore1Task( void *pvParameters )
     being executed, which in turn will write the handle of the message
     buffer written to into xControlMessageBuffer then generate an interrupt
     in core 2. */
-    for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
-    {
-      xMessageBufferSend( xDataMessageBuffers[ x ], 
-                         ( void * ) cString,
-                         strlen( cString ),
-                         mbaDONT_BLOCK );
-      
-      /* Delay before repeating */
-      vTaskDelay( xDelay );
-    }
+    xMessageBufferSend( xDataMessageBuffers, 
+                        ( void * ) cString,
+                        strlen( cString ),
+                        mbaDONT_BLOCK );
+    
+    /* Delay before repeating */
+    vTaskDelay( xDelay );
 
     ulNextValue++;
   }
@@ -597,24 +598,21 @@ static void prvCore1Task( void *pvParameters )
 */
 static BaseType_t xAreMessageBufferAMPTasksStillRunning( void )
 {
-  static uint32_t ulLastCycleCounters[ mbaNUMBER_OF_CORE_2_TASKS ] = { 0 };
+  static uint32_t ulLastCycleCounters = 0;
   BaseType_t xDemoStatus = pdPASS;
   BaseType_t x;
   
   /* Called by the check task to determine the health status of the tasks
   implemented in this demo. */
-  for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
+  if( ulLastCycleCounters == ulCycleCounters )
   {
-    if( ulLastCycleCounters[ x ] == ulCycleCounters[ x ] )
-    {
-      xDemoStatus = pdFAIL;
-    }
-    else
-    {
-      ulLastCycleCounters[ x ] = ulCycleCounters[ x ];
-    }
+    xDemoStatus = pdFAIL;
   }
-  
+  else
+  {
+    ulLastCycleCounters = ulCycleCounters;
+  }
+
   return xDemoStatus;
 }
 
@@ -648,13 +646,6 @@ static void prvCheckTask( void *pvParameters )
       HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
       HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     }
-  }
-}
-
-static void prvUartTestTask( void *pvParameters ){
-  while(1){
-    HAL_UART_Transmit(&huart3, "Hi\n", 4, 1000);
-    vTaskDelay(1000);
   }
 }
 

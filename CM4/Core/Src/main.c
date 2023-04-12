@@ -134,10 +134,12 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  MX_USART3_UART_Init();
+
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
   
-  if (( xControlMessageBuffer == NULL )|( xDataMessageBuffers[0] == NULL ) | ( xDataMessageBuffers[1] == NULL ))
+  if (( xControlMessageBuffer == NULL )|( xDataMessageBuffers == NULL ))
   {
     Error_Handler();
   }
@@ -177,19 +179,17 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  BaseType_t x;
-  for( x = 0; x < mbaNUMBER_OF_CORE_2_TASKS; x++ )
-  {    
-    /* Pass the loop counter into the created task using the task's
-    parameter.  The task then uses the value as an index into the
-    ulCycleCounters and xDataMessageBuffers arrays. */
-    xTaskCreate( prvCore2Tasks,
-                "AMPCore2",
-                configMINIMAL_STACK_SIZE,
-                ( void * ) x,
-                tskIDLE_PRIORITY + 1,
-                NULL );
-  }
+
+  /* Pass the loop counter into the created task using the task's
+  parameter.  The task then uses the value as an index into the
+  ulCycleCounters and xDataMessageBuffers arrays. */
+  xTaskCreate( prvCore2Tasks,
+              "AMPCore2",
+              configMINIMAL_STACK_SIZE,
+              NULL,
+              tskIDLE_PRIORITY + 1,
+              NULL );
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -358,16 +358,10 @@ void MX_USART3_UART_Init(void)
 /* Own function definitions ---------------------------------------------*/
 static void prvCore2Tasks( void *pvParameters )
 {
-  BaseType_t x;
   size_t xReceivedBytes;
   uint32_t ulNextValue = 0;
   char cExpectedString[ 15 ];
   char cReceivedString[ 15 ];
-  
-  /* The index into the xDataMessageBuffers and ulLoopCounter arrays is
-  passed into this task using the task's parameter. */
-  x = ( BaseType_t ) pvParameters;
-  configASSERT( x < mbaNUMBER_OF_CORE_2_TASKS );
   
   for( ;; )
   {
@@ -376,11 +370,11 @@ static void prvCore2Tasks( void *pvParameters )
     
     /* Wait to receive the next message from core 1. */
     memset( cReceivedString, 0x00, sizeof( cReceivedString ) );
-    xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[ x ],
+    xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers,
                                             cReceivedString,
                                             sizeof( cReceivedString ),
                                             portMAX_DELAY );
-    
+    HAL_StatusTypeDef retval = HAL_UART_Transmit(&huart3, cReceivedString, strlen(cReceivedString), 100);
     /* Check the number of bytes received was as expected. */
     configASSERT( xReceivedBytes == strlen( cExpectedString ) );
     
@@ -388,7 +382,7 @@ static void prvCore2Tasks( void *pvParameters )
     counter so the check task knows this task is still running. */
     if( strcmp( cReceivedString, cExpectedString ) == 0 )
     {
-      ( ulCycleCounters[ x ] )++;
+      ( ulCycleCounters )++;
     }
     else
     {
