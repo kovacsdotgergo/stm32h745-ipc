@@ -38,6 +38,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define osThreadNew(a, b, c) NULL
 
 #ifndef HSEM_ID_0
 #define HSEM_ID_0 (0U) /* HW semaphore 0*/
@@ -101,6 +102,7 @@ void StartDefaultTask(void *argument);
 static void prvCore1Task( void *pvParameters );
 static void prvCheckTask( void *pvParameters );
 static BaseType_t xAreMessageBufferAMPTasksStillRunning( void );
+static void prvUartTestTask( void *pvParameters );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -211,11 +213,13 @@ Error_Handler();
   /* USER CODE BEGIN RTOS_THREADS */
   const uint8_t mainCHECK_TASK_PRIORITY = configMAX_PRIORITIES - 3;
   const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
+  const uint8_t mainUART_TEST_TASK_PRIORITY = configMAX_PRIORITIES - 4;
   xTaskCreate(prvCheckTask, "Check", configMINIMAL_STACK_SIZE, \
       NULL, mainCHECK_TASK_PRIORITY, NULL);
   xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, NULL);
-  
+  xTaskCreate(prvUartTestTask, "UART Test", configMINIMAL_STACK_SIZE, \
+      NULL, mainUART_TEST_TASK_PRIORITY, NULL);
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -646,6 +650,14 @@ static void prvCheckTask( void *pvParameters )
     }
   }
 }
+
+static void prvUartTestTask( void *pvParameters ){
+  while(1){
+    HAL_UART_Transmit(&huart3, "Hi\n", 4, 1000);
+    vTaskDelay(1000);
+  }
+}
+
 /* End of own functions -------------------------------------------------*/
 /* USER CODE END 4 */
 
