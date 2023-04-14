@@ -581,6 +581,7 @@ static void prvCore1Task( void *pvParameters )
     being executed, which in turn will write the handle of the message
     buffer written to into xControlMessageBuffer then generate an interrupt
     in core 2. */
+    startTime = __HAL_TIM_GET_COUNTER(&htim5);
     xMessageBufferSend( xDataMessageBuffers, 
                         ( void * ) cString,
                         strlen( cString ),

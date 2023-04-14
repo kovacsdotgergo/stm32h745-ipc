@@ -362,6 +362,8 @@ static void prvCore2Tasks( void *pvParameters )
   uint32_t ulNextValue = 0;
   char cExpectedString[ 15 ];
   char cReceivedString[ 15 ];
+  char cRunTimeString[ 15 ];
+  uint32_t runTime;
   
   for( ;; )
   {
@@ -374,7 +376,10 @@ static void prvCore2Tasks( void *pvParameters )
                                             cReceivedString,
                                             sizeof( cReceivedString ),
                                             portMAX_DELAY );
-    HAL_StatusTypeDef retval = HAL_UART_Transmit(&huart3, cReceivedString, strlen(cReceivedString), 100);
+    endTime = __HAL_TIM_GET_COUNTER(&htim5);
+    runTime = endTime - startTime - runtimeOffset;
+    sprintf(cRunTimeString, "%lu", runTime);
+    HAL_StatusTypeDef retval = HAL_UART_Transmit(&huart3, cRunTimeString, strlen(cRunTimeString), 100);
     /* Check the number of bytes received was as expected. */
     configASSERT( xReceivedBytes == strlen( cExpectedString ) );
     
