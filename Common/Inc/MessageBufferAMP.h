@@ -47,8 +47,6 @@ overhead of message buffers. */
 MessageBufferHandle_t xControlMessageBuffer;
 #pragma location = 0x38000004
 MessageBufferHandle_t xDataMessageBuffers;
-#pragma location = 0x3800000C
-static uint32_t ulCycleCounters;
 /* The variable used to hold the stream buffer structure.*/
 #pragma location = 0x38000050
 StaticStreamBuffer_t xStreamBufferStruct_ctrl;
@@ -63,7 +61,6 @@ static uint8_t ucStorageBuffer[ mbaTASK_MESSAGE_BUFFER_SIZE ];
 #elif defined ( __CC_ARM )
 MessageBufferHandle_t xControlMessageBuffer __attribute__((at(0x38000000)));
 MessageBufferHandle_t xDataMessageBuffers __attribute__((at(0x38000004)));
-static uint32_t ulCycleCounters __attribute__((at(0x3800000C)));
 /* The variable used to hold the stream buffer structure.*/
 StaticStreamBuffer_t xStreamBufferStruct_ctrl __attribute__((at(0x38000050)));
 StaticStreamBuffer_t xStreamBufferStruct __attribute__((at(0x380000A0)));
@@ -74,7 +71,6 @@ static uint8_t ucStorageBuffer[ mbaTASK_MESSAGE_BUFFER_SIZE ]__attribute__((at(0
 #elif defined ( __GNUC__ )
 MessageBufferHandle_t xControlMessageBuffer __attribute__((section(".RAM_D3_Z1")));
 MessageBufferHandle_t xDataMessageBuffers __attribute__ ((section (".RAM_D3_Z2")));
-static uint32_t ulCycleCounters __attribute__ ((section (".RAM_D3_Z3")));
 /* The variable used to hold the stream buffer structure.*/
 StaticStreamBuffer_t xStreamBufferStruct_ctrl  __attribute__ ((section (".RAM_D3_Z4")));
 StaticStreamBuffer_t xStreamBufferStruct __attribute__ ((section (".RAM_D3_Z5")));

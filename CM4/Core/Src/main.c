@@ -383,17 +383,6 @@ static void prvCore2Tasks( void *pvParameters )
     /* Check the number of bytes received was as expected. */
     configASSERT( xReceivedBytes == strlen( cExpectedString ) );
     
-    /* If the received string matches that expected then increment the loop
-    counter so the check task knows this task is still running. */
-    if( strcmp( cReceivedString, cExpectedString ) == 0 )
-    {
-      ( ulCycleCounters )++;
-    }
-    else
-    {
-      xDemoStatus = pdFAIL;
-    }
-    
     /* Expect the next string in sequence the next time around. */
     ulNextValue++;
   }

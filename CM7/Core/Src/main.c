@@ -100,8 +100,6 @@ void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 static void prvCore1Task( void *pvParameters );
-static void prvCheckTask( void *pvParameters );
-static BaseType_t xAreMessageBufferAMPTasksStillRunning( void );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -206,11 +204,7 @@ Error_Handler();
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  const uint8_t mainCHECK_TASK_PRIORITY = configMAX_PRIORITIES - 3;
   const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
-  const uint8_t mainUART_TEST_TASK_PRIORITY = configMAX_PRIORITIES - 4;
-  xTaskCreate(prvCheckTask, "Check", configMINIMAL_STACK_SIZE, \
-      NULL, mainCHECK_TASK_PRIORITY, NULL);
   xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, NULL);
   /* add threads, ... */
@@ -550,7 +544,6 @@ void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
    via message buffers. */
 static void prvCore1Task( void *pvParameters )
 {
-  BaseType_t x;
   uint32_t ulNextValue = 0;
   const TickType_t xDelay = pdMS_TO_TICKS( 250 );
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
@@ -571,6 +564,7 @@ static void prvCore1Task( void *pvParameters )
       }
       vTaskDelay(uartDelay);
     } while(uartInputBuffer != 's');
+
     /* Create the next string to send.  The value is incremented on each
     loop iteration, and the length of the string changes as the number of
     digits in the value increases. */
@@ -591,62 +585,6 @@ static void prvCore1Task( void *pvParameters )
     vTaskDelay( xDelay );
 
     ulNextValue++;
-  }
-}
-
-/* 
-  Check if the application still running
-*/
-static BaseType_t xAreMessageBufferAMPTasksStillRunning( void )
-{
-  static uint32_t ulLastCycleCounters = 0;
-  BaseType_t xDemoStatus = pdPASS;
-  BaseType_t x;
-  
-  /* Called by the check task to determine the health status of the tasks
-  implemented in this demo. */
-  if( ulLastCycleCounters == ulCycleCounters )
-  {
-    xDemoStatus = pdFAIL;
-  }
-  else
-  {
-    ulLastCycleCounters = ulCycleCounters;
-  }
-
-  return xDemoStatus;
-}
-
-/* Check task function 
-   */
-static void prvCheckTask( void *pvParameters )
-{
-  TickType_t xNextWakeTime;
-  const TickType_t xCycleFrequency = pdMS_TO_TICKS( 2000UL );
-  
-  /* Just to remove compiler warning. */
-  ( void ) pvParameters;
-  
-  /* Initialise xNextWakeTime - this only needs to be done once. */
-  xNextWakeTime = xTaskGetTickCount();
-  
-  for( ;; )
-  {
-    /* Place this task in the blocked state until it is time to run again. */
-    vTaskDelayUntil( &xNextWakeTime, xCycleFrequency );
-    
-    if( xAreMessageBufferAMPTasksStillRunning() != pdPASS )
-    {
-      /* Application fail */
-      HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-    }
-    else
-    {
-      /* Application still running */
-      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-    }
   }
 }
 
