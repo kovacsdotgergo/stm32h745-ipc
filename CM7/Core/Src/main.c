@@ -86,20 +86,22 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-
+static TaskHandle_t core1TaskHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_ETH_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
+static void MX_ETH_Init(void);
 static void MX_TIM5_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 static void prvCore1Task( void *pvParameters );
+static void prvCore1InterruptHandler( void );
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -138,6 +140,8 @@ int main(void)
   /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
   sensitive to rising edge : Configured only once */
   HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0xFU, 0U);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
   /* Create control message buffer */
   xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
@@ -172,9 +176,9 @@ Error_Handler();
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ETH_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_ETH_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
 
@@ -206,7 +210,8 @@ Error_Handler();
   /* USER CODE BEGIN RTOS_THREADS */
   const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
   xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
-      NULL, mainAMP_TASK_PRIORITY, NULL);
+      NULL, mainAMP_TASK_PRIORITY, &core1TaskHandle);
+  configASSERT( core1TaskHandle );
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -423,7 +428,7 @@ static void MX_USART3_UART_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
+  if (HAL_UARTEx_EnableFifoMode(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -538,6 +543,18 @@ void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
   }
 }
 
+static void prvCore1InterruptHandler( void ){
+  /* Signaling to task with notification*/
+  BaseType_t xHigherPriorityTaskWoken;
+  vTaskNotifyGiveFromISR(core1TaskHandle, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+  prvCore1InterruptHandler();
+  HAL_EXTI_D1_ClearFlag(EXTI_LINE1);
+}
+
 /* Tasks ----------------------------------------------------------------*/
 
 /* This task will periodically send data to tasks running on Core 2
@@ -548,22 +565,26 @@ static void prvCore1Task( void *pvParameters )
   const TickType_t xDelay = pdMS_TO_TICKS( 250 );
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
   char cString[ 15 ];
-  const uint8_t UART_INVALID_VALUE = 255;
   uint8_t uartInputBuffer;
+  uint8_t uartOutputBuffer[32];
+  
   /* Remove warning about unused parameters. */
   ( void ) pvParameters;
   
   for( ;; )
   {
-    /* Waiting for a start signal*/
+    /* Waiting for a start signal */
+    HAL_StatusTypeDef ret;
     do {
-      uartInputBuffer = UART_INVALID_VALUE;
-      HAL_UART_Receive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
-      if(uartInputBuffer != UART_INVALID_VALUE){
+      //uartEchoAndReceive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer));
+
+      ret = HAL_UART_Receive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 1000);
+      if(ret == HAL_OK){
         HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
+        HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
       }
-      vTaskDelay(uartDelay);
-    } while(uartInputBuffer != 's');
+      vTaskDelay(uartDelay); // vtaskdelay until could be used
+    } while(uartInputBuffer != 's' || ret != HAL_OK);
 
     /* Create the next string to send.  The value is incremented on each
     loop iteration, and the length of the string changes as the number of
@@ -582,6 +603,14 @@ static void prvCore1Task( void *pvParameters )
                         mbaDONT_BLOCK );
     
     /* Delay before repeating */
+    /* pdTrue for binary semaphore, indefinit blocking */
+    // todo: wait for mutex, calcutlate and send to uart
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    uint32_t runTime = endTime - startTime - runtimeOffset;
+    memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
+    sprintf(uartOutputBuffer, "%lu\r\n", runTime);
+    HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen(uartOutputBuffer), HAL_MAX_DELAY);
+
     vTaskDelay( xDelay );
 
     ulNextValue++;
@@ -601,18 +630,10 @@ static void prvCore1Task( void *pvParameters )
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  uint32_t runTime;
-  float_t fRunTime;
   /* Infinite loop */
   for(;;)
   {
-    // startTime = __HAL_TIM_GET_COUNTER(&htim5);
-
-	// HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
-  osDelay(1000);
-  // // endTime = __HAL_TIM_GET_COUNTER(&htim5);
-  // runTime = endTime - startTime - runtimeOffset;
-  // fRunTime	= runTime / 72000000.0F;
+    osDelay(1000);
   }
   /* USER CODE END 5 */
 }

@@ -95,6 +95,7 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN PFP */
 static void prvCore2Tasks( void *pvParameters );
 static void prvCore2InterruptHandler( void );
+static void prvGenerateCore1Interrupt( void );
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE END PFP */
 
@@ -135,6 +136,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   MX_USART3_UART_Init();
+  HAL_EXTI_EdgeConfig(EXTI_LINE1, EXTI_RISING_EDGE);
 
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
@@ -344,7 +346,7 @@ void MX_USART3_UART_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
+  if (HAL_UARTEx_EnableFifoMode(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -377,12 +379,18 @@ static void prvCore2Tasks( void *pvParameters )
                                             sizeof( cReceivedString ),
                                             portMAX_DELAY );
     endTime = __HAL_TIM_GET_COUNTER(&htim5);
+    prvGenerateCore1Interrupt();
+
+    /*
     runTime = endTime - startTime - runtimeOffset;
     sprintf(cRunTimeString, "%lu", runTime);
     HAL_StatusTypeDef retval = HAL_UART_Transmit(&huart3, cRunTimeString, strlen(cRunTimeString), 100);
+    */
     /* Check the number of bytes received was as expected. */
+    /*
     configASSERT( xReceivedBytes == strlen( cExpectedString ) );
-    
+    */
+   
     /* Expect the next string in sequence the next time around. */
     ulNextValue++;
   }
@@ -412,6 +420,12 @@ static void prvCore2InterruptHandler( void )
   pdTRUE if the interrupt safe API unblocks a task that has a priority above
   that of the currently executing task. */
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
+static void prvGenerateCore1Interrupt(){
+  HAL_EXTI_D2_EventInputConfig(EXTI_LINE1 , EXTI_MODE_IT,  DISABLE);
+  HAL_EXTI_D1_EventInputConfig(EXTI_LINE1 , EXTI_MODE_IT,  ENABLE);
+  HAL_EXTI_GenerateSWInterrupt(EXTI_LINE1);
 }
 
 /* */
