@@ -140,8 +140,9 @@ int main(void)
   /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
   sensitive to rising edge : Configured only once */
   HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 0xFU, 0U);
-  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0xFU, 0U);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
   /* Create control message buffer */
   xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
@@ -552,7 +553,7 @@ static void prvCore1InterruptHandler( void ){
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   prvCore1InterruptHandler();
-  HAL_EXTI_D1_ClearFlag(EXTI_LINE1);
+  HAL_EXTI_D1_ClearFlag(EXTI_LINE2);
 }
 
 /* Tasks ----------------------------------------------------------------*/
@@ -583,7 +584,7 @@ static void prvCore1Task( void *pvParameters )
         HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
         HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
       }
-      vTaskDelay(uartDelay); // vtaskdelay until could be used
+      vTaskDelay(uartDelay); // vtaskdelay_until could be used
     } while(uartInputBuffer != 's' || ret != HAL_OK);
 
     /* Create the next string to send.  The value is incremented on each
@@ -606,6 +607,7 @@ static void prvCore1Task( void *pvParameters )
     /* pdTrue for binary semaphore, indefinit blocking */
     // todo: wait for mutex, calcutlate and send to uart
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    uint32_t fakeEndTime = __HAL_TIM_GET_COUNTER(&htim5);
     uint32_t runTime = endTime - startTime - runtimeOffset;
     memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
     sprintf(uartOutputBuffer, "%lu\r\n", runTime);

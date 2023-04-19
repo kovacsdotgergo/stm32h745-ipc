@@ -136,7 +136,8 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   MX_USART3_UART_Init();
-  HAL_EXTI_EdgeConfig(EXTI_LINE1, EXTI_RISING_EDGE);
+  htim5.Instance = TIM5;
+  HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
 
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
@@ -423,9 +424,9 @@ static void prvCore2InterruptHandler( void )
 }
 
 static void prvGenerateCore1Interrupt(){
-  HAL_EXTI_D2_EventInputConfig(EXTI_LINE1 , EXTI_MODE_IT,  DISABLE);
-  HAL_EXTI_D1_EventInputConfig(EXTI_LINE1 , EXTI_MODE_IT,  ENABLE);
-  HAL_EXTI_GenerateSWInterrupt(EXTI_LINE1);
+  HAL_EXTI_D2_EventInputConfig(EXTI_LINE2 , EXTI_MODE_IT,  DISABLE);
+  HAL_EXTI_D1_EventInputConfig(EXTI_LINE2 , EXTI_MODE_IT,  ENABLE);
+  HAL_EXTI_GenerateSWInterrupt(EXTI_LINE2);
 }
 
 /* */

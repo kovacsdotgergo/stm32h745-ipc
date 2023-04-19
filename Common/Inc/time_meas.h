@@ -11,8 +11,8 @@
 // __attribute__((at(0x30000200))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
 
 // #elif defined ( __GNUC__ ) /* GNU Compiler */
-uint32_t startTime __attribute__((section(".measStartSection")));
-uint32_t endTime __attribute__((section(".measEndSection")));
+uint32_t startTime __attribute__((section(".RAM_D3_Z3")));
+uint32_t endTime __attribute__((section(".RAM_D3_Z3")));
 
 // #endif
 
