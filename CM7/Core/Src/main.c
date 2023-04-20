@@ -87,6 +87,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 static TaskHandle_t core1TaskHandle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -558,6 +559,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 /* Tasks ----------------------------------------------------------------*/
 
+/* uart todo*/
+
 /* This task will periodically send data to tasks running on Core 2
    via message buffers. */
 static void prvCore1Task( void *pvParameters )
@@ -584,35 +587,38 @@ static void prvCore1Task( void *pvParameters )
         HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
         HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
       }
+      /* Received char is in the buffer*/
+
       vTaskDelay(uartDelay); // vtaskdelay_until could be used
     } while(uartInputBuffer != 's' || ret != HAL_OK);
 
-    /* Create the next string to send.  The value is incremented on each
-    loop iteration, and the length of the string changes as the number of
-    digits in the value increases. */
-    sprintf( cString, "%lu", ( unsigned long ) ulNextValue );
-    
-    /* Send the value from this Core to the tasks on the Core 2 via the message 
-    buffers.  This will result in sbSEND_COMPLETED()
-    being executed, which in turn will write the handle of the message
-    buffer written to into xControlMessageBuffer then generate an interrupt
-    in core 2. */
-    startTime = __HAL_TIM_GET_COUNTER(&htim5);
-    xMessageBufferSend( xDataMessageBuffers, 
-                        ( void * ) cString,
-                        strlen( cString ),
-                        mbaDONT_BLOCK );
-    
-    /* Delay before repeating */
-    /* pdTrue for binary semaphore, indefinit blocking */
-    // todo: wait for mutex, calcutlate and send to uart
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    uint32_t fakeEndTime = __HAL_TIM_GET_COUNTER(&htim5);
-    uint32_t runTime = endTime - startTime - runtimeOffset;
-    memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
-    sprintf(uartOutputBuffer, "%lu\r\n", runTime);
-    HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen(uartOutputBuffer), HAL_MAX_DELAY);
-
+    for(int i = 0; i < N_MEAS; ++i){
+      /* Create the next string to send.  The value is incremented on each
+      loop iteration, and the length of the string changes as the number of
+      digits in the value increases. */
+      sprintf( cString, "%lu", ( unsigned long ) ulNextValue );
+      
+      /* Send the value from this Core to the tasks on the Core 2 via the message 
+      buffers.  This will result in sbSEND_COMPLETED()
+      being executed, which in turn will write the handle of the message
+      buffer written to into xControlMessageBuffer then generate an interrupt
+      in core 2. */
+      startTime = __HAL_TIM_GET_COUNTER(&htim5);
+      xMessageBufferSend( xDataMessageBuffers, 
+                          ( void * ) cString,
+                          strlen( cString ),
+                          mbaDONT_BLOCK );
+      
+      /* Delay before repeating */
+      /* pdTrue for binary semaphore, indefinit blocking */
+      // todo: wait for mutex, calcutlate and send to uart
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+      uint32_t runTime = endTime - startTime - runtimeOffset;
+      
+      memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
+      sprintf(uartOutputBuffer, "%lu\r\n", runTime);
+      HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen(uartOutputBuffer), HAL_MAX_DELAY);
+    }
     vTaskDelay( xDelay );
 
     ulNextValue++;

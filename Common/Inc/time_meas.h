@@ -18,3 +18,6 @@ uint32_t endTime __attribute__((section(".RAM_D3_Z3")));
 
 // uint32_t startTime, endTime;
 const uint32_t runtimeOffset = 24;
+
+static const uint32_t N_MEAS = 10;
+static const uint32_t SENT_DATA_SIZE;
