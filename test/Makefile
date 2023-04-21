@@ -1,15 +1,16 @@
 .PHONY: test all clean setup
 
 CC = gcc
-CFLAGS = -Wall -Werror -std=c11
+CFLAGS = -Wall -Werror -std=c11 -g3
 
 CXX = g++
-CXXFLAGS = -Wall -Werror -std=c++14
+CXXFLAGS = -Wall -Werror -std=c++14 -g3
 TEST_FLAGS = -lgtest -lgtest_main
 
 BUILD_DIR = build
 WORKSPACE = ..
-INLCUDE = $(WORKSPACE)/CM7/Core/Inc/
+INLCUDE += -I$(WORKSPACE)/CM7/Core/Inc/
+INLCUDE += -I$(WORKSPACE)/CM7/Core/Src/
 CM7_SRC_DIR = $(WORKSPACE)/CM7/Core/Src
 
 SRC_NAME = uart_state_machine.c
@@ -22,18 +23,18 @@ TEST_SRC = test_uart_state_machine.cpp
 TEST_OBJ = $(addprefix $(BUILD_DIR)/,$(TEST_SRC:.cpp=.o))
 
 $(OBJ): $(SRC) setup
-	$(CC) $(CFLAGS) -c $(SRC) -o $(OBJ) -I $(INLCUDE)
-
-test: $(TEST_TARGET)
-	./$(TEST_TARGET)
+	$(CC) $(CFLAGS) -c $(SRC) -o $(OBJ) $(INLCUDE)
 
 $(TEST_TARGET): $(TEST_OBJ) $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(TEST_TARGET) $(TEST_OBJ) $(OBJ) $(TEST_FLAGS)
 
 $(TEST_OBJ): $(TEST_SRC) setup
-	$(CXX) $(CXXFLAGS) -c $(TEST_SRC) -o $(TEST_OBJ) -I $(INLCUDE)
+	$(CXX) $(CXXFLAGS) -c $(TEST_SRC) -o $(TEST_OBJ) $(INLCUDE)
 
-all: test
+all: $(TEST_TARGET)
+
+test: all
+	./$(TEST_TARGET)
 
 clean:
 	rm -r build

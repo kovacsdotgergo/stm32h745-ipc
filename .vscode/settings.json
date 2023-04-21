@@ -3,6 +3,8 @@
         "cmsis_os.h": "c",
         "main.h": "c",
         "mc_message_buffer.h": "c",
-        "cstdio": "c"
+        "cstdio": "c",
+        "string.h": "c",
+        "uart_state_machine.c": "cpp"
     }
 }
