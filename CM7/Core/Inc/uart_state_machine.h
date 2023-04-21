@@ -3,16 +3,16 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define NUM_MEAS_STRING_LEN (16)
 #define MEAS_DATA_SIZE_STRING_LEN (16)
 
 typedef enum{
-    IDLE = 0,
-    NUM_OF_MEAS = 1,
-    NUM_OF_MEAS_MIGHT_END = 2,
-    DATA_SIZE = 3,
-    DATA_SIZE_MIGHT_END = 3,
+    IDLE,
+    NUM_OF_MEAS_NEXT,
+    DATA_SIZE_NEXT,
 } uartStates;
 
 /**
@@ -28,6 +28,5 @@ typedef enum{
  * @note Length of the string given character by character for the output\
  *  values can be NUM_MEAS_STRING_LEN and MEAS_DATA_SIZE_STRING_LEN
  **/
-bool uartStateMachineStep(uint8_t input, uint32_t* pNumMeas, uint32_t* pMeasDataSize);
-
+bool uartStateMachineStep(char input, uint32_t* pNumMeas, uint32_t* pMeasDataSize);
 #endif /* UART_STATE_MACHINE_H */

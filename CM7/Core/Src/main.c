@@ -29,6 +29,7 @@
 #include "MessageBufferAMP.h"
 #include <stdio.h>
 #include <string.h>
+#include "uart_state_machine.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -590,7 +591,7 @@ static void prvCore1Task( void *pvParameters )
       /* Received char is in the buffer*/
 
       vTaskDelay(uartDelay); // vtaskdelay_until could be used
-    } while(uartInputBuffer != 's' || ret != HAL_OK);
+    } while(ret != HAL_OK || !uartStateMachineStep(uartInputBuffer, NULL, NULL));
 
     for(int i = 0; i < N_MEAS; ++i){
       /* Create the next string to send.  The value is incremented on each
