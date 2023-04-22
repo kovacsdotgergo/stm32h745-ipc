@@ -371,7 +371,7 @@ static void prvCore2Tasks( void *pvParameters )
   uint32_t xReceivedBytes, sizeFromMessage;
   uint8_t ulNextValue = 0;
   uint8_t receivedBuffer[ MAX_DATA_SIZE ];
-  
+
   for( ;; )
   {   
     /* Wait to receive the next message from core 1. */
@@ -382,10 +382,10 @@ static void prvCore2Tasks( void *pvParameters )
                                             portMAX_DELAY );
     endTime = __HAL_TIM_GET_COUNTER(&htim5);
 
-    sscanf((char*)receivedBuffer, "%lu", &sizeFromMessage);
+    sscanf((char*)receivedBuffer, "%u", &sizeFromMessage);
     /* Checking the size and last element of the data */
     if(xReceivedBytes != sizeFromMessage || 
-        ((sizeFromMessage > 2) && receivedBuffer[xReceivedBytes] != ulNextValue)){
+        ((sizeFromMessage > 2) && receivedBuffer[xReceivedBytes - 1] != ulNextValue)){
       measurementErrorHandler();
     }
     prvGenerateCore1Interrupt();

@@ -572,7 +572,12 @@ static void prvCore1Task( void *pvParameters )
   uint8_t uartInputBuffer;
   uint8_t uartOutputBuffer[32];
 
-  uartStateMachine stateMachine;
+  uartStateMachine stateMachine = {
+    .state = IDLE,
+    .stringNumMeas = {0},
+    .stringMeasData = {0},
+    .stringIndex = 0,
+  };
   bool startMeas;
   uint32_t numMeas, dataSize;
   uartStates lastState = IDLE;
@@ -602,17 +607,17 @@ static void prvCore1Task( void *pvParameters )
 
       vTaskDelay(uartDelay); // vtaskdelay_until could be used
     } while(receiveSuccess != HAL_OK || !startMeas);
-
+    /* Sending data size for error deteciton */
     if(dataSize > MAX_DATA_SIZE){
       dataSize = MAX_DATA_SIZE;
     }
     for(uint8_t i = 0; i < numMeas; ++i){
       /* Sending the data. The size is given over uart */
       for(size_t j = 0; j < dataSize; ++j){
-        sendBuffer[j] = ulNextValue + j;
+        sendBuffer[j] = ulNextValue;
       }
 
-      sprintf(sendBuffer, "%hhd", dataSize);
+      sprintf((char*)sendBuffer, "%u", dataSize);
       
       /* Start of measurement and sending the data */
       startTime = __HAL_TIM_GET_COUNTER(&htim5);

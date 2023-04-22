@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 /* Maximum size for the messages */
-#define MAX_DATA_SIZE (65536)
+#define MAX_DATA_SIZE (16)
 
 /** Shared variables for time measurement
  *  Only for gcc compiler */
