@@ -358,41 +358,38 @@ void MX_USART3_UART_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void measurementErrorHandler(){
+  while(1){
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
+}
+
 /* Own function definitions ---------------------------------------------*/
 static void prvCore2Tasks( void *pvParameters )
 {
-  size_t xReceivedBytes;
-  uint32_t ulNextValue = 0;
-  char cExpectedString[ 15 ];
-  char cReceivedString[ 15 ];
-  char cRunTimeString[ 15 ];
-  uint32_t runTime;
+  uint32_t xReceivedBytes, sizeFromMessage;
+  uint8_t ulNextValue = 0;
+  uint8_t receivedBuffer[ MAX_DATA_SIZE ];
   
   for( ;; )
-  {
-    /* Create the string that is expected to be received this time round. */
-    sprintf( cExpectedString, "%lu", ( unsigned long ) ulNextValue );
-    
+  {   
     /* Wait to receive the next message from core 1. */
-    memset( cReceivedString, 0x00, sizeof( cReceivedString ) );
+    memset( receivedBuffer, 0x00, sizeof( receivedBuffer ) );
     xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers,
-                                            cReceivedString,
-                                            sizeof( cReceivedString ),
+                                            receivedBuffer,
+                                            sizeof(receivedBuffer),
                                             portMAX_DELAY );
     endTime = __HAL_TIM_GET_COUNTER(&htim5);
-    prvGenerateCore1Interrupt();
 
-    /*
-    runTime = endTime - startTime - runtimeOffset;
-    sprintf(cRunTimeString, "%lu", runTime);
-    HAL_StatusTypeDef retval = HAL_UART_Transmit(&huart3, cRunTimeString, strlen(cRunTimeString), 100);
-    */
-    /* Check the number of bytes received was as expected. */
-    /*
-    configASSERT( xReceivedBytes == strlen( cExpectedString ) );
-    */
+    sscanf((char*)receivedBuffer, "%lu", &sizeFromMessage);
+    /* Checking the size and last element of the data */
+    if(xReceivedBytes != sizeFromMessage || 
+        ((sizeFromMessage > 2) && receivedBuffer[xReceivedBytes] != ulNextValue)){
+      measurementErrorHandler();
+    }
+    prvGenerateCore1Interrupt();
    
-    /* Expect the next string in sequence the next time around. */
     ulNextValue++;
   }
 }

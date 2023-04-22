@@ -566,12 +566,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
    via message buffers. */
 static void prvCore1Task( void *pvParameters )
 {
-  uint32_t ulNextValue = 0;
-  const TickType_t xDelay = pdMS_TO_TICKS( 250 );
+  uint8_t ulNextValue = 0;
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
-  char cString[ 15 ];
+  char sendBuffer[MAX_DATA_SIZE];
   uint8_t uartInputBuffer;
   uint8_t uartOutputBuffer[32];
+
+  uartStateMachine stateMachine;
+  bool startMeas;
+  uint32_t numMeas, dataSize;
+  uartStates lastState = IDLE;
   
   /* Remove warning about unused parameters. */
   ( void ) pvParameters;
@@ -579,50 +583,54 @@ static void prvCore1Task( void *pvParameters )
   for( ;; )
   {
     /* Waiting for a start signal */
-    HAL_StatusTypeDef ret;
+    HAL_StatusTypeDef receiveSuccess;
     do {
-      //uartEchoAndReceive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer));
-
-      ret = HAL_UART_Receive(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 1000);
-      if(ret == HAL_OK){
+      receiveSuccess = HAL_UART_Receive(&huart3, &uartInputBuffer,
+          sizeof(uartInputBuffer), 0);
+      
+      if(receiveSuccess == HAL_OK){
+        /* Step if new char */
+        startMeas = uartStateMachineStep(uartInputBuffer, &stateMachine,
+            &numMeas, &dataSize);
+        /* Echoing */
         HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
-        HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
+        if(lastState != stateMachine.state){
+          HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
+        }
+        lastState = stateMachine.state;
       }
-      /* Received char is in the buffer*/
 
       vTaskDelay(uartDelay); // vtaskdelay_until could be used
-    } while(ret != HAL_OK || !uartStateMachineStep(uartInputBuffer, NULL, NULL));
+    } while(receiveSuccess != HAL_OK || !startMeas);
 
-    for(int i = 0; i < N_MEAS; ++i){
-      /* Create the next string to send.  The value is incremented on each
-      loop iteration, and the length of the string changes as the number of
-      digits in the value increases. */
-      sprintf( cString, "%lu", ( unsigned long ) ulNextValue );
+    if(dataSize > MAX_DATA_SIZE){
+      dataSize = MAX_DATA_SIZE;
+    }
+    for(uint8_t i = 0; i < numMeas; ++i){
+      /* Sending the data. The size is given over uart */
+      for(size_t j = 0; j < dataSize; ++j){
+        sendBuffer[j] = ulNextValue + j;
+      }
+
+      sprintf(sendBuffer, "%hhd", dataSize);
       
-      /* Send the value from this Core to the tasks on the Core 2 via the message 
-      buffers.  This will result in sbSEND_COMPLETED()
-      being executed, which in turn will write the handle of the message
-      buffer written to into xControlMessageBuffer then generate an interrupt
-      in core 2. */
+      /* Start of measurement and sending the data */
       startTime = __HAL_TIM_GET_COUNTER(&htim5);
       xMessageBufferSend( xDataMessageBuffers, 
-                          ( void * ) cString,
-                          strlen( cString ),
+                          ( void * ) sendBuffer,
+                          dataSize,
                           mbaDONT_BLOCK );
       
-      /* Delay before repeating */
-      /* pdTrue for binary semaphore, indefinit blocking */
-      // todo: wait for mutex, calcutlate and send to uart
+      /* Waiting for the signal from the other core */
       ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
       uint32_t runTime = endTime - startTime - runtimeOffset;
-      
+      /* Printing measurement */
       memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
       sprintf(uartOutputBuffer, "%lu\r\n", runTime);
       HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen(uartOutputBuffer), HAL_MAX_DELAY);
+      
+      ulNextValue = ulNextValue + 1;
     }
-    vTaskDelay( xDelay );
-
-    ulNextValue++;
   }
 }
 
