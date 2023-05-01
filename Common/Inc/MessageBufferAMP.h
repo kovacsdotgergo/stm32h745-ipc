@@ -36,7 +36,7 @@
 
 /* Enough four 4 8 byte strings, plus the additional 4 bytes per message
 overhead of message buffers. */
-#define mbaTASK_MESSAGE_BUFFER_SIZE ( 60 )
+#define mbaTASK_MESSAGE_BUFFER_SIZE ( 32768 )
 
 #define mbaCONTROL_MESSAGE_BUFFER_SIZE ( 24 )
 
