@@ -568,7 +568,7 @@ static void prvCore1Task( void *pvParameters )
 {
   uint8_t ulNextValue = 0;
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
-  char sendBuffer[MAX_DATA_SIZE];
+  static char sendBuffer[MAX_DATA_SIZE];
   uint8_t uartInputBuffer;
   uint8_t uartOutputBuffer[32];
 
@@ -611,7 +611,7 @@ static void prvCore1Task( void *pvParameters )
     if(dataSize > MAX_DATA_SIZE){
       dataSize = MAX_DATA_SIZE;
     }
-    for(uint8_t i = 0; i < numMeas; ++i){
+    for(uint32_t i = 0; i < numMeas; ++i){
       /* Sending the data. The size is given over uart */
       for(size_t j = 0; j < dataSize; ++j){
         sendBuffer[j] = ulNextValue;

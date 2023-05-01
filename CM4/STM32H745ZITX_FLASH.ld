@@ -51,7 +51,7 @@ RAM_D3_Z3 (xrw)       : ORIGIN = 0x3800000c, LENGTH = 68
 RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000050, LENGTH = 80
 RAM_D3_Z5 (xrw)       : ORIGIN = 0x380000A0, LENGTH = 95
 RAM_D3_Z6 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
-RAM_D3_Z7 (xrw)       : ORIGIN = 0x38000200, LENGTH = 256
+RAM_D3_Z7 (xrw)       : ORIGIN = 0x38000200, LENGTH = 32K
 }
 
 /* Define output sections */

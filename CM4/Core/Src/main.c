@@ -370,12 +370,11 @@ static void prvCore2Tasks( void *pvParameters )
 {
   uint32_t xReceivedBytes, sizeFromMessage;
   uint8_t ulNextValue = 0;
-  uint8_t receivedBuffer[ MAX_DATA_SIZE ];
+  static uint8_t receivedBuffer[ MAX_DATA_SIZE ];
 
   for( ;; )
   {   
     /* Wait to receive the next message from core 1. */
-    memset( receivedBuffer, 0x00, sizeof( receivedBuffer ) );
     xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers,
                                             receivedBuffer,
                                             sizeof(receivedBuffer),
@@ -388,6 +387,7 @@ static void prvCore2Tasks( void *pvParameters )
         ((sizeFromMessage > 2) && receivedBuffer[xReceivedBytes - 1] != ulNextValue)){
       measurementErrorHandler();
     }
+    memset( receivedBuffer, 0x00, xReceivedBytes );
     prvGenerateCore1Interrupt();
    
     ulNextValue++;
