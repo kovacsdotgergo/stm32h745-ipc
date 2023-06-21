@@ -23,7 +23,7 @@ uartStateMachineFixture::uartStateMachineFixture(){
 
 TEST_F(uartStateMachineFixture, idle_then_notStartChar) {
     /* Start meas */
-    EXPECT_EQ(uartStateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -33,7 +33,7 @@ TEST_F(uartStateMachineFixture, idle_then_notStartChar) {
 
 TEST_F(uartStateMachineFixture, idle_then_StartChar) {
     /* Start meas */
-    EXPECT_EQ(uartStateMachineStep('s', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('s', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -49,7 +49,7 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_invalidChar){
 
     /* Expectation*/
     /* Start meas*/
-    EXPECT_EQ(uartStateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -63,10 +63,10 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_0_4_5_9){
 
     /* Expectation*/
     /* Start meas*/
-    EXPECT_EQ(uartStateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('4', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('5', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('4', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('5', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -86,7 +86,7 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_enter){
 
     /* Expectation*/
     /* Start meas*/
-    EXPECT_EQ(uartStateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -102,7 +102,7 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_filled){
     /* Expectation*/
     /* Start meas*/
     for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
-        EXPECT_EQ(uartStateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
     }
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
@@ -122,9 +122,9 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_filled_then_num){
     /* Expectation*/
     /* Start meas*/
     for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
-        EXPECT_EQ(uartStateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
     }
-    EXPECT_EQ(uartStateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -145,10 +145,10 @@ TEST_F(uartStateMachineFixture, data_size_next_then_0_2_7_9){
 
     /* Expectation*/
     /* Start meas*/
-    EXPECT_EQ(uartStateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('2', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('7', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uartStateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('2', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('7', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -174,7 +174,7 @@ TEST_F(uartStateMachineFixture, data_size_next_then_enter){ // todo
 
     /* Expectation*/
     /* Start meas*/
-    EXPECT_EQ(uartStateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), true);
+    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), true);
     /* Ouptut */
     EXPECT_EQ(numMeas, 256);
     EXPECT_EQ(measDataSize, 134);
@@ -196,7 +196,7 @@ TEST_F(uartStateMachineFixture, data_size_next_then_filled){
     /* Expectation*/
     /* Start meas*/
     for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        EXPECT_EQ(uartStateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
     }
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
@@ -216,9 +216,9 @@ TEST_F(uartStateMachineFixture, data_size_next_filled_then_num){
     /* Expectation*/
     /* Start meas*/
     for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        EXPECT_EQ(uartStateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
     }
-    EXPECT_EQ(uartStateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
     /* Ouptut */
     EXPECT_EQ(numMeas, 0);
     EXPECT_EQ(measDataSize, 0);
@@ -242,7 +242,7 @@ TEST_F(uartStateMachineFixture, allStates_then_returnToIdle) {
         memset(stateMachine.stringMeasData, 6, sizeof(stateMachine.stringMeasData));
 
         /* Start meas */
-        EXPECT_EQ(uartStateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
         /* Ouptut */
         EXPECT_EQ(numMeas, 0);
         EXPECT_EQ(measDataSize, 0);

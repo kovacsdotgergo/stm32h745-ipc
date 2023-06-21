@@ -4,14 +4,16 @@ static inline bool uart_isdigit(char ch){
     return ch >= '0' && ch <= '9';
 }
 
-void resetSM(uartStateMachine *stateMachine){
+void uart_resetSM(uartStateMachine *stateMachine){
     stateMachine->state = IDLE;
     memset(stateMachine->stringNumMeas, 0x00, NUM_MEAS_STRING_LEN);
     memset(stateMachine->stringMeasData, 0x00, MEAS_DATA_SIZE_STRING_LEN);
     stateMachine->stringIndex = 0;
 }
 
-bool uartStateMachineStep(char input, uartStateMachine* stateMachine,
+// perform a state transition on the parameter state machine used for
+//      handling the charachters received over uart
+bool uart_stateMachineStep(char input, uartStateMachine* stateMachine,
          uint32_t* pNumMeas, uint32_t* pMeasDataSize){
     bool ret = false;
 
@@ -21,7 +23,7 @@ bool uartStateMachineStep(char input, uartStateMachine* stateMachine,
             stateMachine->state = NUM_OF_MEAS_NEXT;
         }
         else{
-            resetSM(stateMachine);
+            uart_resetSM(stateMachine);
         }
     break;
     case NUM_OF_MEAS_NEXT:
@@ -36,7 +38,7 @@ bool uartStateMachineStep(char input, uartStateMachine* stateMachine,
             stateMachine->stringIndex = 0;
         }
         else{
-            resetSM(stateMachine);
+            uart_resetSM(stateMachine);
         }
     break;
     case DATA_SIZE_NEXT:
@@ -49,15 +51,15 @@ bool uartStateMachineStep(char input, uartStateMachine* stateMachine,
         else if(input == '\r'){
             *pNumMeas = atoi(stateMachine->stringNumMeas);
             *pMeasDataSize = atoi(stateMachine->stringMeasData);
-            resetSM(stateMachine);
+            uart_resetSM(stateMachine);
             ret = true;
         }
         else{
-            resetSM(stateMachine);
+            uart_resetSM(stateMachine);
         }
     break;
     default:
-        resetSM(stateMachine);
+        uart_resetSM(stateMachine);
     break;
     }
     return ret;   

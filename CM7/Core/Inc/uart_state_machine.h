@@ -22,11 +22,11 @@ typedef struct{
     uint8_t stringIndex;
 }uartStateMachine;
 
-/** todo
+/** 
  * @brief Steps state machine, returns true if measurement can be started
  * 
  * @param[in] input Input of the state machine
- * @param[inout] state State of the state machine
+ * @param[inout] stateMachine State of the state machine
  * @param[out] pNumMeas Contains the measurement repetition count when the\
  *  measurement can be started 
  * @param[out] pMeasDataSize Contains the data size to be sent when the\
@@ -36,9 +36,13 @@ typedef struct{
  * @note Length of the string given character by character for the output\
  *  values can be NUM_MEAS_STRING_LEN and MEAS_DATA_SIZE_STRING_LEN
  **/
-bool uartStateMachineStep(char input, uartStateMachine* stateMachine,
+bool uart_stateMachineStep(char input, uartStateMachine* stateMachine,
          uint32_t* pNumMeas, uint32_t* pMeasDataSize);
 
-void resetSM(uartStateMachine *stateMachine);
+/**
+ * @brief Resets the state of the state machine and the internal arrays as 
+ *  well
+*/
+void uart_resetSM(uartStateMachine *stateMachine);
 
 #endif /* UART_STATE_MACHINE_H */
