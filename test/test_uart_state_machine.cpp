@@ -20,160 +20,77 @@ uartStateMachineFixture::uartStateMachineFixture(){
 }
 
 /* Idle -----------------------------------------------------------------*/
-
-TEST_F(uartStateMachineFixture, idle_then_notStartChar) {
-    /* Start meas */
-    EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, IDLE);
-}
-
 TEST_F(uartStateMachineFixture, idle_then_StartChar) {
     /* Start meas */
     EXPECT_EQ(uart_stateMachineStep('s', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
     /* State */
     EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
 }
 
 /* Num_of_meas_next -----------------------------------------------------*/
 
-TEST_F(uartStateMachineFixture, num_of_meas_next_then_invalidChar){
+TEST_F(uartStateMachineFixture, num_of_meas_next_then_CR){
     /* Preparation */
     stateMachine.state = NUM_OF_MEAS_NEXT;
 
     /* Expectation*/
-    /* Start meas*/
-    EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, IDLE);
-}
-
-TEST_F(uartStateMachineFixture, num_of_meas_next_then_0_4_5_9){
-    /* Preparation */
-    stateMachine.state = NUM_OF_MEAS_NEXT;
-
-    /* Expectation*/
-    /* Start meas*/
-    EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('4', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('5', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
-    EXPECT_EQ(stateMachine.stringIndex, 4);
-    EXPECT_EQ(stateMachine.stringNumMeas[0], '0');
-    EXPECT_EQ(stateMachine.stringNumMeas[1], '4');
-    EXPECT_EQ(stateMachine.stringNumMeas[2], '5');
-    EXPECT_EQ(stateMachine.stringNumMeas[3], '9');
-}
-
-TEST_F(uartStateMachineFixture, num_of_meas_next_then_enter){
-    /* Preparation */
-    stateMachine.state = NUM_OF_MEAS_NEXT;
-    stateMachine.stringIndex = 5;
-
-    /* Expectation*/
-    /* Start meas*/
+    /* CR input */
     EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
     /* State */
     EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
-    EXPECT_EQ(stateMachine.stringIndex, 0);
 }
 
-TEST_F(uartStateMachineFixture, num_of_meas_next_then_filled){
+TEST_F(uartStateMachineFixture, num_of_meas_next_then_digit){
     /* Preparation */
     stateMachine.state = NUM_OF_MEAS_NEXT;
 
     /* Expectation*/
-    /* Start meas*/
+    /* 0 and 9 digit as input*/
     for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
+        /* Return value */
         EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+        /* State */
+        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
     }
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
     for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
-        EXPECT_EQ(stateMachine.stringNumMeas[i], '0');
-    }
-    EXPECT_EQ(stateMachine.stringIndex, NUM_MEAS_STRING_LEN - 1);
-}
-
-TEST_F(uartStateMachineFixture, num_of_meas_next_filled_then_num){
-    /* Preparation */
-    stateMachine.state = NUM_OF_MEAS_NEXT;
-
-    /* Expectation*/
-    /* Start meas*/
-    for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
+        /* Return value */
         EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+        /* State */
+        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
     }
-    EXPECT_EQ(uart_stateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
-    for(int i = 0; i < NUM_MEAS_STRING_LEN - 1; ++i){
-        EXPECT_EQ(stateMachine.stringNumMeas[i], '9');
-    }
-    EXPECT_EQ(stateMachine.stringNumMeas[NUM_MEAS_STRING_LEN - 1], '1');
-    EXPECT_EQ(stateMachine.stringIndex, NUM_MEAS_STRING_LEN - 1);
 }
 
 /* Data_size_next -------------------------------------------------------*/
-
 TEST_F(uartStateMachineFixture, data_size_next_then_0_2_7_9){
     /* Preparation */
     stateMachine.state = DATA_SIZE_NEXT;
 
     /* Expectation*/
-    /* Start meas*/
-    EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('2', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('7', &stateMachine, &numMeas, &measDataSize), false);
-    EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
-    EXPECT_EQ(stateMachine.stringIndex, 4);
-    EXPECT_EQ(stateMachine.stringMeasData[0], '0');
-    EXPECT_EQ(stateMachine.stringMeasData[1], '2');
-    EXPECT_EQ(stateMachine.stringMeasData[2], '7');
-    EXPECT_EQ(stateMachine.stringMeasData[3], '9');
+    /* 0 and 9 digit as input*/
+    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
+        /* Return value */
+        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+        /* State */
+        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
+    }
+    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
+        /* Return value */
+        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+        /* State */
+        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
+    }
 }
 
-TEST_F(uartStateMachineFixture, data_size_next_then_enter){ // todo
+/* Complete input sequence ----------------------------------------------*/
+// TODO
+TEST_F(uartStateMachineFixture, idle_then_complete_input){ 
     /* Preparation */
-    stateMachine.state = DATA_SIZE_NEXT;
-    stateMachine.stringIndex = 5;
-    stateMachine.stringNumMeas[0] = '2';
-    stateMachine.stringNumMeas[1] = '5';
-    stateMachine.stringNumMeas[2] = '6';
-    stateMachine.stringMeasData[0] = '1';
-    stateMachine.stringMeasData[1] = '3';
-    stateMachine.stringMeasData[2] = '4';
+    char stringNumMeas[] = "256";
+    char stringMeasData[] = "134";
 
     /* Expectation*/
-    /* Start meas*/
+    EXPECT_EQ(uart_stateMachineStep('r', &stateMachine, &numMeas, &measDataSize, &pMeasDirection), false);
+    /* CR, input ended and correct*/
     EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), true);
     /* Ouptut */
     EXPECT_EQ(numMeas, 256);
@@ -189,48 +106,6 @@ TEST_F(uartStateMachineFixture, data_size_next_then_enter){ // todo
     }
 }
 
-TEST_F(uartStateMachineFixture, data_size_next_then_filled){
-    /* Preparation */
-    stateMachine.state = DATA_SIZE_NEXT;
-
-    /* Expectation*/
-    /* Start meas*/
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-    }
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        EXPECT_EQ(stateMachine.stringMeasData[i], '0');
-    }
-    EXPECT_EQ(stateMachine.stringIndex, MEAS_DATA_SIZE_STRING_LEN - 1);
-}
-
-TEST_F(uartStateMachineFixture, data_size_next_filled_then_num){
-    /* Preparation */
-    stateMachine.state = DATA_SIZE_NEXT;
-
-    /* Expectation*/
-    /* Start meas*/
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
-    }
-    EXPECT_EQ(uart_stateMachineStep('1', &stateMachine, &numMeas, &measDataSize), false);
-    /* Ouptut */
-    EXPECT_EQ(numMeas, 0);
-    EXPECT_EQ(measDataSize, 0);
-    /* State */
-    EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN - 1; ++i){
-        EXPECT_EQ(stateMachine.stringMeasData[i], '9');
-    }
-    EXPECT_EQ(stateMachine.stringMeasData[MEAS_DATA_SIZE_STRING_LEN - 1], '1');
-    EXPECT_EQ(stateMachine.stringIndex, MEAS_DATA_SIZE_STRING_LEN - 1);
-}
-
 /* All states return ----------------------------------------------------*/
 
 TEST_F(uartStateMachineFixture, allStates_then_returnToIdle) {
@@ -241,7 +116,7 @@ TEST_F(uartStateMachineFixture, allStates_then_returnToIdle) {
         memset(stateMachine.stringNumMeas, 1, sizeof(stateMachine.stringNumMeas));
         memset(stateMachine.stringMeasData, 6, sizeof(stateMachine.stringMeasData));
 
-        /* Start meas */
+        /* Invalid input */
         EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
         /* Ouptut */
         EXPECT_EQ(numMeas, 0);

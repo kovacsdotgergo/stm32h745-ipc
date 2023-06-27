@@ -6,7 +6,7 @@
 #include "message_buffer.h"
 #include "task.h"
 // ST
-#include "main.h" //gpio pin definitions
+#include "main.h" //gpio pin definitions, htim5, hal inc
 // Own files
 #include "MessageBufferAMP.h"
 #include "time_meas.h"

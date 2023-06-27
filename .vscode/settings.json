@@ -9,6 +9,8 @@
         "uart_state_machine.h": "c",
         "messagebufferamp.h": "c",
         "message_buffer.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "stm32h7xx_hal.h": "c",
+        "stm32h7xx_hal_conf.h": "c"
     }
 }
