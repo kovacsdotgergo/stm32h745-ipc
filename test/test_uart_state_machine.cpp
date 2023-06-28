@@ -8,6 +8,7 @@ class uartStateMachineFixture : public ::testing::Test{
 public:
     uint32_t numMeas;
     uint32_t measDataSize;
+    measurementDirection measDirection;
     uartStateMachine stateMachine;
 
     uartStateMachineFixture();
@@ -16,13 +17,14 @@ public:
 uartStateMachineFixture::uartStateMachineFixture(){
     numMeas = 0;
     measDataSize = 0;
-    resetSM(&stateMachine);
+    measDirection = SEND; // invalid
+    uart_resetSM(&stateMachine);
 }
 
 /* Idle -----------------------------------------------------------------*/
 TEST_F(uartStateMachineFixture, idle_then_StartChar) {
     /* Start meas */
-    EXPECT_EQ(uart_stateMachineStep('s', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('s', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
     /* State */
     EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
 }
@@ -35,7 +37,7 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_CR){
 
     /* Expectation*/
     /* CR input */
-    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), false);
+    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
     /* State */
     EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
 }
@@ -48,36 +50,24 @@ TEST_F(uartStateMachineFixture, num_of_meas_next_then_digit){
     /* 0 and 9 digit as input*/
     for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
         /* Return value */
-        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
-        /* State */
-        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
-    }
-    for(int i = 0; i < NUM_MEAS_STRING_LEN; ++i){
-        /* Return value */
-        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep(((i&1U) == 1) ? '0' : '9', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
         /* State */
         EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
     }
 }
 
 /* Data_size_next -------------------------------------------------------*/
-TEST_F(uartStateMachineFixture, data_size_next_then_0_2_7_9){
+TEST_F(uartStateMachineFixture, data_size_next_then_0_and_9){
     /* Preparation */
     stateMachine.state = DATA_SIZE_NEXT;
 
     /* Expectation*/
     /* 0 and 9 digit as input*/
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
+    for(uint8_t i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
         /* Return value */
-        EXPECT_EQ(uart_stateMachineStep('0', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep(((i&1U) == 0) ? '0' : '9', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
         /* State */
-        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
-    }
-    for(int i = 0; i < MEAS_DATA_SIZE_STRING_LEN; ++i){
-        /* Return value */
-        EXPECT_EQ(uart_stateMachineStep('9', &stateMachine, &numMeas, &measDataSize), false);
-        /* State */
-        EXPECT_EQ(stateMachine.state, NUM_OF_MEAS_NEXT);
+        EXPECT_EQ(stateMachine.state, DATA_SIZE_NEXT);
     }
 }
 
@@ -89,9 +79,19 @@ TEST_F(uartStateMachineFixture, idle_then_complete_input){
     char stringMeasData[] = "134";
 
     /* Expectation*/
-    EXPECT_EQ(uart_stateMachineStep('r', &stateMachine, &numMeas, &measDataSize, &pMeasDirection), false);
+    /* start char*/
+    EXPECT_EQ(uart_stateMachineStep('r', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
+    /* meas num */
+    for(uint8_t i = 0; i < sizeof(stringNumMeas)-1; ++i){
+        EXPECT_EQ(uart_stateMachineStep(stringNumMeas[i], &stateMachine, &numMeas, &measDataSize, &measDirection), false);
+    }
+    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
+    /* meas data size */
+    for(uint8_t i = 0; i < sizeof(stringNumMeas)-1; ++i){
+        EXPECT_EQ(uart_stateMachineStep(stringMeasData[i], &stateMachine, &numMeas, &measDataSize, &measDirection), false);
+    }
     /* CR, input ended and correct*/
-    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize), true);
+    EXPECT_EQ(uart_stateMachineStep('\r', &stateMachine, &numMeas, &measDataSize, &measDirection), true);
     /* Ouptut */
     EXPECT_EQ(numMeas, 256);
     EXPECT_EQ(measDataSize, 134);
@@ -117,7 +117,7 @@ TEST_F(uartStateMachineFixture, allStates_then_returnToIdle) {
         memset(stateMachine.stringMeasData, 6, sizeof(stateMachine.stringMeasData));
 
         /* Invalid input */
-        EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize), false);
+        EXPECT_EQ(uart_stateMachineStep('a', &stateMachine, &numMeas, &measDataSize, &measDirection), false);
         /* Ouptut */
         EXPECT_EQ(numMeas, 0);
         EXPECT_EQ(measDataSize, 0);
