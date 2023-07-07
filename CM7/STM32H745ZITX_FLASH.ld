@@ -53,7 +53,7 @@ MEMORY
   /* Sections used for shared variables */
   RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 4
   RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000004, LENGTH = 8
-  RAM_D3_Z3 (xrw)       : ORIGIN = 0x3800000c, LENGTH = 68
+  RAM_D3_Z3 (xrw)       : ORIGIN = 0x3800000c, LENGTH = 20
   RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000050, LENGTH = 80
   RAM_D3_Z5 (xrw)       : ORIGIN = 0x380000A0, LENGTH = 95
   RAM_D3_Z6 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256

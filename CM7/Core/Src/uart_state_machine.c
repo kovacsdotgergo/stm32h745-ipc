@@ -17,12 +17,12 @@ void uart_resetSM(uartStateMachine *stateMachine){
 //      handling the charachters received over uart
 bool uart_stateMachineStep(char input, uartStateMachine* stateMachine,
         uint32_t* pNumMeas, uint32_t* pMeasDataSize,
-        measurementDirection* pMeasDirection){
+        uart_measDirection* pMeasDirection){
     bool ret = false;
 
     switch(stateMachine->state){
     case IDLE:
-        // start character indication the direction
+        // start character indicating the direction
         if(input == 's' || input == 'r'){
             stateMachine->state = NUM_OF_MEAS_NEXT;
             stateMachine->direction = (input == 's') ? SEND : RECIEVE;

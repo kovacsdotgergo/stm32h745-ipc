@@ -18,14 +18,14 @@ typedef enum{
 typedef enum{
     SEND,
     RECIEVE,
-} measurementDirection;
+} uart_measDirection;
 
 typedef struct{
     uartStates state;
     char stringNumMeas[NUM_MEAS_STRING_LEN];
     char stringMeasData[MEAS_DATA_SIZE_STRING_LEN];
     uint8_t stringIndex;
-    measurementDirection direction;
+    uart_measDirection direction;
 } uartStateMachine;
 
 /** 
@@ -46,7 +46,7 @@ typedef struct{
  **/
 bool uart_stateMachineStep(char input, uartStateMachine* stateMachine,
         uint32_t* pNumMeas, uint32_t* pMeasDataSize, 
-        measurementDirection* pMeasDirection);
+        uart_measDirection* pMeasDirection);
 
 /**
  * @brief Resets the state of the state machine and the internal arrays as 

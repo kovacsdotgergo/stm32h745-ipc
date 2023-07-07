@@ -8,7 +8,7 @@ class uartStateMachineFixture : public ::testing::Test{
 public:
     uint32_t numMeas;
     uint32_t measDataSize;
-    measurementDirection measDirection;
+    uart_measDirection measDirection;
     uartStateMachine stateMachine;
 
     uartStateMachineFixture();
