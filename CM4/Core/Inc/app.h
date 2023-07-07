@@ -14,6 +14,10 @@
 #include "MessageBufferAMP.h"
 #include "time_meas.h"
 
+#define START_MEAS_BIT 0x01
+
+extern TaskHandle_t core2TaskHandle;
+
 /* Callback handling the exti interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 
@@ -25,6 +29,7 @@ void app_measureCore2Sending(void);
 
 /* Interrupt handler when receiving IPC messages with message buffers */
 void interruptHandlerIPC_messageBuffer(void);
+void interruptHandlerIPC_startMeas(void);
 /* Generating an interrupt for Core 1, singaling the end of the 
     measurement */
 void generateInterruptIPC_endMeasurement(void);

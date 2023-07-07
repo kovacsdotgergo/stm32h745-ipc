@@ -32,6 +32,8 @@ void app_measureCore1Recieving(void);
 void interruptHandlerIPC_endMeas( void );
 /* Triggering interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer );
+/* Triggering interupt used for IPC signaling start of meas */
+void generateInterruptIPC_startMeas(void);
 
 void app_initMessageBufferAMP(void);
 void app_createMessageBuffers(void);

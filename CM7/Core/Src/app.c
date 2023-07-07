@@ -55,7 +55,7 @@ void core1MeasurementTask( void *pvParameters ){
     shDirection = (direction == SEND) ? M7_SEND : M7_RECIEVE;
     for(uint32_t i = 0; i < numMeas; ++i){
       /* Signaling to the other core*/
-      /* TODO */
+      generateInterruptIPC_startMeas();
       /* Waiting for message or sending message */
       switch (shDirection)
       {
@@ -123,26 +123,40 @@ void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer )
     xMessageBufferSend( xControlMessageBuffer, &xUpdatedBuffer, sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
     
     /* This is where the interrupt would be generated. */
-    HAL_EXTI_D1_EventInputConfig(EXTI_LINE0 , EXTI_MODE_IT,  DISABLE);
-    HAL_EXTI_D2_EventInputConfig(EXTI_LINE0 , EXTI_MODE_IT,  ENABLE);
+    HAL_EXTI_D1_EventInputConfig(EXTI_LINE0, EXTI_MODE_IT, DISABLE);
+    HAL_EXTI_D2_EventInputConfig(EXTI_LINE0, EXTI_MODE_IT, ENABLE);
     HAL_EXTI_GenerateSWInterrupt(EXTI_LINE0);
   }
 }
 
+void generateInterruptIPC_startMeas(void){
+  HAL_EXTI_D1_EventInputConfig(START_MEAS_INT_EXTI_LINE,
+                               EXTI_MODE_IT, DISABLE);
+  HAL_EXTI_D2_EventInputConfig(START_MEAS_INT_EXTI_LINE,
+                               EXTI_MODE_IT, ENABLE);
+  HAL_EXTI_GenerateSWInterrupt(START_MEAS_INT_EXTI_LINE);
+}
+
 void app_initMessageBufferAMP(void){
-      /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
+  /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
   sensitive to rising edge : Configured only once */
   HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
-
+  /* SW interrupt for start of measurement */
+  HAL_EXTI_EdgeConfig(START_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
+  /* SW interrupt for end of measurement */
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 }
 
 void app_createMessageBuffers(void){
   /* Create control message buffer */
-  xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
+  xControlMessageBuffer = xMessageBufferCreateStatic(
+      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctr, 
+      &xStreamBufferStruct_ctrl);  
   /* Create data message buffer */
-  xDataMessageBuffers = xMessageBufferCreateStatic( mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0], &xStreamBufferStruct);
+  xDataMessageBuffers = xMessageBufferCreateStatic(
+      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0],
+      &xStreamBufferStruct);
   configASSERT( xDataMessageBuffers );
 }
 

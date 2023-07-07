@@ -1,20 +1,41 @@
 #include "app.h"
 
+TaskHandle_t core2TaskHandle;
 
 /* Override the callback function to handle interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  interruptHandlerIPC_messageBuffer();
-  HAL_EXTI_D2_ClearFlag(EXTI_LINE0);
+  switch (GPIO_Pin)
+  {
+  case GPIO_PIN_0:
+    interruptHandlerIPC_messageBuffer();
+    HAL_EXTI_D2_ClearFlag(EXTI_LINE0);
+    break;
+  case GPIO_PIN_3:
+    interruptHandlerIPC_startMeas();
+    HAL_EXTI_D2_ClearFlag(START_MEAS_INT_EXTI_LINE);
+    break;
+  default:
+    app_measurementErrorHandler();
+    break;
+  }
 }
 
 /* m4 core task waiting for measurement and handling it */
 void core2MeasurementTask( void *pvParameters )
 {
+  uint32_t notifiedValue;
   for( ;; )
   {   
     /* Wait for signal and direction of the measurement */
-    /* TODO */
+    do
+    {
+      /* Cast because of indefinite block*/
+      (void)xTaskNotifyWait(pdFALSE, 0xffffffffUL, &notifiedValue, 
+                            portMAX_DELAY);
+    /* TODO Message buffer can also unblock unfortunately*/
+    } while (!(notifiedValue & START_MEAS_BIT));
+    
     /* Perform one measurement */
     switch (shDirection)
     {
@@ -85,6 +106,15 @@ void interruptHandlerIPC_messageBuffer( void ){
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
+void interruptHandlerIPC_startMeas(void){
+  /* Signaling to task with notification*/
+  BaseType_t xHigherPriorityTaskWoken;
+  /* TODO bad solution, message buffer uses notification as well*/
+  (void)xTaskNotifyFromISR(core2TaskHandle, START_MEAS_BIT, eSetBits,
+                     &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
 /* Init function */
 void app_initMessageBufferAMP(void){
   /* Timer for time measurement */
@@ -93,9 +123,12 @@ void app_initMessageBufferAMP(void){
   /* TODO */
   HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
 
-  /* Interrupt line to handle the interrupt signal from the m7 core*/
+  /* SW interrupt for message buffer */
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  /* SW interrupt to signal start of meas */
+  HAL_NVIC_SetPriority(START_MEAS_INT_EXTI_IRQ, 0xFU, 1U);
+  HAL_NVIC_EnableIRQ(START_MEAS_INT_EXTI_IRQ);
   
   /* m7 core initializes the message buffers */
   if (( xControlMessageBuffer == NULL )|( xDataMessageBuffers == NULL ))
