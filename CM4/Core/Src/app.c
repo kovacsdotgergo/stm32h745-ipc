@@ -11,7 +11,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     interruptHandlerIPC_messageBuffer();
     HAL_EXTI_D2_ClearFlag(EXTI_LINE0);
     break;
-  case GPIO_PIN_3:
+  case START_MEAS_GPIO_PIN:
     interruptHandlerIPC_startMeas();
     HAL_EXTI_D2_ClearFlag(START_MEAS_INT_EXTI_LINE);
     break;
@@ -118,7 +118,6 @@ void interruptHandlerIPC_startMeas(void){
 /* Init function */
 void app_initMessageBufferAMP(void){
   /* Timer for time measurement */
-  MX_USART3_UART_Init();
   htim5.Instance = TIM5;
   /* TODO */
   HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
@@ -139,12 +138,9 @@ void app_initMessageBufferAMP(void){
 
 /* Creating the tasks for the m4 core */
 void app_createTasks(void){
-    xTaskCreate( core2MeasurementTask,
-              "AMPCore2",
-              configMINIMAL_STACK_SIZE,
-              NULL,
-              tskIDLE_PRIORITY + 1,
-              NULL );
+  xTaskCreate(core2MeasurementTask, "AMPCore2", configMINIMAL_STACK_SIZE,
+              NULL, tskIDLE_PRIORITY + 1, &core2TaskHandle);
+  configASSERT(core2TaskHandle);
 }
 
 /* Error handler when the data isn't correct*/
