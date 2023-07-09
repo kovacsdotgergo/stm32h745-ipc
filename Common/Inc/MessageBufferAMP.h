@@ -37,19 +37,20 @@
 /* Enough for 4 8 byte strings, plus the additional 4 bytes per message
 overhead of message buffers. */
 #define mbaTASK_MESSAGE_BUFFER_SIZE ( 32768 )
-
 #define mbaCONTROL_MESSAGE_BUFFER_SIZE ( 24 )
 
+#define MB1TO2_IDX 0
+#define MB2TO1_IDX 1
+
 /* A block time of 0 simply means, don't block. */
-#define mbaDONT_BLOCK				0
+#define mbaDONT_BLOCK 0
 
-extern MessageBufferHandle_t xControlMessageBuffer;
-extern MessageBufferHandle_t xDataMessageBuffers;
+extern MessageBufferHandle_t xControlMessageBuffer[2];
+extern MessageBufferHandle_t xDataMessageBuffers[2];
 
-extern StaticStreamBuffer_t xStreamBufferStruct_ctrl;
-extern StaticStreamBuffer_t xStreamBufferStruct;
+extern StaticStreamBuffer_t xStreamBufferStruct[4];
 
-extern uint8_t ucStorageBuffer_ctr[ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
-extern uint8_t ucStorageBuffer[ mbaTASK_MESSAGE_BUFFER_SIZE ];
+extern uint8_t ucStorageBuffer_ctrl[2][ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
+extern uint8_t ucStorageBuffer[2][ mbaTASK_MESSAGE_BUFFER_SIZE ];
 
 #endif /* MESSAGE_BUFFER_AMP_H */

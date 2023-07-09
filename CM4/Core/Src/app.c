@@ -58,7 +58,7 @@ void app_measureCore2Recieving(void){
   static uint8_t receivedBuffer[ MAX_DATA_SIZE ];
 
   /* Wait to receive the next message from core 1. */
-  xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers,
+  xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[MB1TO2_IDX],
                                           receivedBuffer,
                                           sizeof(receivedBuffer),
                                           portMAX_DELAY );
@@ -77,6 +77,10 @@ void app_measureCore2Recieving(void){
 }
 
 void app_measureCore2Sending(void){
+  /* TODO delay*/
+  /* Start measurement */
+  shStartTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
+  /* Message buffer send */
   /* TODO */
 }
 
@@ -94,7 +98,7 @@ void interruptHandlerIPC_messageBuffer( void ){
   
   /* xControlMessageBuffer contains the handle of the message buffer that
   contains data. */
-  if( xMessageBufferReceiveFromISR( xControlMessageBuffer,
+  if( xMessageBufferReceiveFromISR( xControlMessageBuffer[MB1TO2_IDX],
                                    &xUpdatedMessageBuffer,
                                    sizeof( xUpdatedMessageBuffer ),
                                    &xHigherPriorityTaskWoken ) == sizeof( xUpdatedMessageBuffer ) )
@@ -130,11 +134,24 @@ void app_initMessageBufferAMP(void){
   HAL_NVIC_EnableIRQ(START_MEAS_INT_EXTI_IRQ);
   
   /* m7 core initializes the message buffers */
-  if (( xControlMessageBuffer == NULL )|( xDataMessageBuffers == NULL ))
+  if (( xControlMessageBuffer[MB1TO2_IDX] == NULL ) |
+      ( xDataMessageBuffers[MB1TO2_IDX] == NULL ))
   {
     Error_Handler();
   }
 }
+
+// void app_createMessageBuffers(void){
+//   /* Create control message buffer */
+//   xControlMessageBuffer = xMessageBufferCreateStatic(
+//       mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctr, 
+//       &xStreamBufferStruct_ctrl);  
+//   /* Create data message buffer */
+//   xDataMessageBuffers = xMessageBufferCreateStatic(
+//       mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0],
+//       &xStreamBufferStruct);
+//   configASSERT( xDataMessageBuffers );
+// }
 
 /* Creating the tasks for the m4 core */
 void app_createTasks(void){

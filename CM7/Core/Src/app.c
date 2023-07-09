@@ -90,7 +90,7 @@ void app_measureCore1Sending(uint32_t dataSize){
 
   /* Start of measurement and sending the data */
   shStartTime = __HAL_TIM_GET_COUNTER(&htim5);
-  xMessageBufferSend( xDataMessageBuffers, 
+  xMessageBufferSend( xDataMessageBuffers[MB1TO2_IDX], 
                       ( void * ) sendBuffer,
                       dataSize,
                       mbaDONT_BLOCK );
@@ -115,12 +115,12 @@ void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer )
 {
   MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) xUpdatedMessageBuffer;
   
-  if( xUpdatedBuffer != xControlMessageBuffer )
+  if( xUpdatedBuffer != xControlMessageBuffer[MB1TO2_IDX] )
   {
     /* Use xControlMessageBuffer to pass the handle of the message buffer
     written to by core 1 to the interrupt handler about to be generated in
     core 2. */
-    xMessageBufferSend( xControlMessageBuffer, &xUpdatedBuffer, sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
+    xMessageBufferSend( xControlMessageBuffer[MB1TO2_IDX], &xUpdatedBuffer, sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
     
     /* This is where the interrupt would be generated. */
     HAL_EXTI_D1_EventInputConfig(EXTI_LINE0, EXTI_MODE_IT, DISABLE);
@@ -150,14 +150,15 @@ void app_initMessageBufferAMP(void){
 
 void app_createMessageBuffers(void){
   /* Create control message buffer */
-  xControlMessageBuffer = xMessageBufferCreateStatic(
-      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctr, 
-      &xStreamBufferStruct_ctrl);  
+  xControlMessageBuffer[MB1TO2_IDX] = xMessageBufferCreateStatic(
+      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB1TO2_IDX], 
+      &xStreamBufferStruct[MB1TO2_IDX*2]);  
   /* Create data message buffer */
-  xDataMessageBuffers = xMessageBufferCreateStatic(
-      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0],
-      &xStreamBufferStruct);
-  configASSERT( xDataMessageBuffers );
+  xDataMessageBuffers[MB1TO2_IDX] = xMessageBufferCreateStatic(
+      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB1TO2_IDX][0],
+      &xStreamBufferStruct[MB1TO2_IDX*2 + 1]);
+  configASSERT( xDataMessageBuffers[MB1TO2_IDX] );
+  configASSERT( xControlMessageBuffer[MB1TO2_IDX] );
 }
 
 void app_createTasks(void){

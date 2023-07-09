@@ -45,13 +45,12 @@ MEMORY
 {
 FLASH (rx)     : ORIGIN = 0x08100000, LENGTH = 1024K
 RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 256K /* before: 288K */
-RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 4
-RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000004, LENGTH = 8
-RAM_D3_Z3 (xrw)       : ORIGIN = 0x3800000c, LENGTH = 20
-RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000050, LENGTH = 80
-RAM_D3_Z5 (xrw)       : ORIGIN = 0x380000A0, LENGTH = 95
-RAM_D3_Z6 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
-RAM_D3_Z7 (xrw)       : ORIGIN = 0x38000200, LENGTH = 32K
+RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 128
+RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000080, LENGTH = 128
+RAM_D3_Z3 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
+RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000200, LENGTH = 512
+RAM_D3_Z5 (xrw)       : ORIGIN = 0x38000400, LENGTH = 64K
+RAM_D3_Z6 (xrw)       : ORIGIN = 0x38010400, LENGTH = 128
 }
 
 /* Define output sections */
@@ -250,35 +249,6 @@ SECTIONS
     _eRAM_D3_Z5 = .;        /* define a global symbol at data end */
   } >RAM_D3_Z5 AT> FLASH 
 
-  
-       /* used by the startup to initialize data */
-  _siRAM_D3_Z6 = LOADADDR(.RAM_D3_Z6); 
- /* Initialized data sections goes into RAM_D3, load LMA copy after code */
-  .RAM_D3_Z6 : 
-  {
-    . = ALIGN(4);
-    _sRAM_D3_Z6 = .;        /* create a global symbol at data start */
-    *(.RAM_D3_Z6)           /* .data sections */
-    *(.RAM_D3_Z6*)          /* .data* sections */
-
-    . = ALIGN(4);
-    _eRAM_D3_Z6 = .;        /* define a global symbol at data end */
-  } >RAM_D3_Z6 AT> FLASH 
-
-  
-       /* used by the startup to initialize data */
-  _siRAM_D3_Z7 = LOADADDR(.RAM_D3_Z7); 
- /* Initialized data sections goes into RAM_D3, load LMA copy after code */
-  .RAM_D3_Z7 : 
-  {
-    . = ALIGN(4);
-    _sRAM_D3_Z7 = .;        /* create a global symbol at data start */
-    *(.RAM_D3_Z7)           /* .data sections */
-    *(.RAM_D3_Z7*)          /* .data* sections */
-
-    . = ALIGN(4);
-    _eRAM_D3_Z7 = .;        /* define a global symbol at data end */
-  } >RAM_D3_Z7 AT> FLASH 
   /* End of own part ----------------------------------------------------*/
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
