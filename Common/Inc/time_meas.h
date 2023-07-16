@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 /* Maximum size for the messages */
-#define MAX_DATA_SIZE (32764)
+#define MAX_DATA_SIZE (16376)
 
 #define START_MEAS_INT_EXTI_IRQ EXTI3_IRQn
 #define START_MEAS_INT_EXTI_LINE EXTI_LINE3

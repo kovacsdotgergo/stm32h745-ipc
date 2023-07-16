@@ -55,8 +55,8 @@ MEMORY
   RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000080, LENGTH = 128
   RAM_D3_Z3 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
   RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000200, LENGTH = 512
-  RAM_D3_Z5 (xrw)       : ORIGIN = 0x38000400, LENGTH = 64K
-  RAM_D3_Z6 (xrw)       : ORIGIN = 0x38010400, LENGTH = 128
+  RAM_D3_Z5 (xrw)       : ORIGIN = 0x38000400, LENGTH = 32K
+  RAM_D3_Z6 (xrw)       : ORIGIN = 0x38008400, LENGTH = 128
 }
 
 /* Sections */
@@ -264,6 +264,20 @@ SECTIONS
     . = ALIGN(4);
     _eRAM_D3_Z5 = .;        /* define a global symbol at data end */
   } >RAM_D3_Z5 AT> FLASH 
+         
+         /* used by the startup to initialize data */
+  _siRAM_D3_Z6 = LOADADDR(.RAM_D3_Z6); 
+ /* Initialized data sections goes into RAM_D3, load LMA copy after code */
+  .RAM_D3_Z6 : 
+  {
+    . = ALIGN(4);
+    _sRAM_D3_Z6 = .;        /* create a global symbol at data start */
+    *(.RAM_D3_Z6)           /* .data sections */
+    *(.RAM_D3_Z6*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _eRAM_D3_Z6 = .;        /* define a global symbol at data end */
+  } >RAM_D3_Z6 AT> FLASH 
 
   /* End of own sections ------------------------------------------------*/
 
