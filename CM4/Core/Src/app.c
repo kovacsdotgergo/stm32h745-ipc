@@ -43,7 +43,7 @@ void core2MeasurementTask( void *pvParameters )
       app_measureCore2Recieving();
       break;
     case M7_RECIEVE:
-      app_measureCore2Sending();
+      app_measureCore2Sending(shDataSize);
       break;
     default:
       app_measurementErrorHandler();
@@ -78,7 +78,7 @@ void app_measureCore2Recieving(void){
 void app_measureCore2Sending(uint32_t dataSize){
   static char sendBuffer[MAX_DATA_SIZE];
   static uint8_t nextValue = 0;
-  for (uint32_t j = 0; j < dataSize, ++j){
+  for (uint32_t j = 0; j < dataSize; ++j){
     sendBuffer[j] = nextValue;
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
@@ -106,9 +106,9 @@ void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
                         sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
     
     /* This is where the interrupt would be generated. */
-    HAL_EXTI_D2_EventInputConfig(EXTI_LINE4, EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D1_EventInputConfig(EXTI_LINE4, EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(EXTI_LINE4);
+    HAL_EXTI_D2_EventInputConfig(MB2TO1_INT_EXTI_LINE, EXTI_MODE_IT, DISABLE);
+    HAL_EXTI_D1_EventInputConfig(MB2TO1_INT_EXTI_LINE, EXTI_MODE_IT, ENABLE);
+    HAL_EXTI_GenerateSWInterrupt(MB2TO1_INT_EXTI_LINE);
   }
 }
 
@@ -154,7 +154,7 @@ void app_initMessageBufferAMP(void){
   /* Int config for end of meas */
   HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
   /* Int config for message buffer*/
-  HAL_EXTI_EdgeConfig(EXTI_LINE4, EXTI_RISING_EDGE);
+  HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
   /* SW interrupt for message buffer */
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);

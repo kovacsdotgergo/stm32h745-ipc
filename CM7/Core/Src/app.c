@@ -9,9 +9,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     interruptHandlerIPC_endMeas();
     HAL_EXTI_D1_ClearFlag(EXTI_LINE2);
     break;
-  case GPIO_PIN_4:
+  case MB2TO1_GPIO_PIN:
     interruptHandlerIPC_messageBuffer();
-    HAL_EXTI_D2_ClearFlag(EXTI_LINE4);
+    HAL_EXTI_D1_ClearFlag(MB2TO1_GPIO_PIN);
     break;
   default:
     app_measurementErrorHandler();
@@ -190,15 +190,15 @@ void generateInterruptIPC_startMeas(void){
 void app_initMessageBufferAMP(void){
   /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
   sensitive to rising edge : Configured only once */
-  HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
+  HAL_EXTI_EdgeConfig(EXTI_LINE0, EXTI_RISING_EDGE);
   /* SW interrupt for start of measurement */
   HAL_EXTI_EdgeConfig(START_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
   /* SW interrupt for end of measurement */
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
   /* SW interrupt for message buffer */
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 0xFU, 1U);
-  HAL_NVIC_EnableIRQ(EXTI_LINE_4);
+  HAL_NVIC_SetPriority(MB2TO1_INT_EXTI_IRQ, 0xFU, 1U);
+  HAL_NVIC_EnableIRQ(MB2TO1_INT_EXTI_IRQ);
 }
 
 void app_createMessageBuffers(void){
