@@ -30,7 +30,6 @@ TEST_F(uartStateMachineFixture, idle_then_StartChar) {
 }
 
 /* Num_of_meas_next -----------------------------------------------------*/
-
 TEST_F(uartStateMachineFixture, num_of_meas_next_then_CR){
     /* Preparation */
     stateMachine.state = NUM_OF_MEAS_NEXT;
@@ -72,7 +71,6 @@ TEST_F(uartStateMachineFixture, data_size_next_then_0_and_9){
 }
 
 /* Complete input sequence ----------------------------------------------*/
-// TODO
 TEST_F(uartStateMachineFixture, idle_then_complete_input){ 
     /* Preparation */
     char stringNumMeas[] = "256";
@@ -107,7 +105,6 @@ TEST_F(uartStateMachineFixture, idle_then_complete_input){
 }
 
 /* All states return ----------------------------------------------------*/
-
 TEST_F(uartStateMachineFixture, allStates_then_returnToIdle) {
     uartStates states[3] = {IDLE, NUM_OF_MEAS_NEXT, DATA_SIZE_NEXT};
     for (int j = 0; j < 3; ++j){

@@ -30,6 +30,8 @@ void app_measureCore1Recieving(void);
 /* Interrupt handler for int triggered from Core2, used for singaling end
     of measurement */
 void interruptHandlerIPC_endMeas( void );
+/* MessageBuffer functionality, recieving message */
+void interruptHandlerIPC_messageBuffer(void);
 /* Triggering interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer );
 /* Triggering interupt used for IPC signaling start of meas */

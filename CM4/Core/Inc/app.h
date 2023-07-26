@@ -25,11 +25,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 void core2MeasurementTask( void *pvParameters );
 /* Receiving a message, error checking and registering the end of meas */
 void app_measureCore2Recieving(void);
-void app_measureCore2Sending(void);
+void app_measureCore2Sending(uint32_t dataSize);
 
 /* Interrupt handler when receiving IPC messages with message buffers */
 void interruptHandlerIPC_messageBuffer(void);
 void interruptHandlerIPC_startMeas(void);
+/* Generate interrupt for message buffer functionality */
+void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
 /* Generating an interrupt for Core 1, singaling the end of the 
     measurement */
 void generateInterruptIPC_endMeasurement(void);

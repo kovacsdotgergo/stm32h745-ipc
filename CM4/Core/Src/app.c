@@ -55,33 +55,61 @@ void core2MeasurementTask( void *pvParameters )
 void app_measureCore2Recieving(void){
   static uint8_t ulNextValue = 0;
   uint32_t xReceivedBytes, sizeFromMessage;
-  static uint8_t receivedBuffer[ MAX_DATA_SIZE ];
+  static uint8_t recieveBuffer[ MAX_DATA_SIZE ];
 
-  /* Wait to receive the next message from core 1. */
   xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[MB1TO2_IDX],
-                                          receivedBuffer,
-                                          sizeof(receivedBuffer),
+                                          recieveBuffer,
+                                          sizeof(recieveBuffer),
                                           portMAX_DELAY );
   shEndTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
 
   /* Checking the size and last element of the data */
-  sscanf((char*)receivedBuffer, "%lu", &sizeFromMessage);
+  sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(xReceivedBytes != sizeFromMessage || 
-      ((sizeFromMessage > 2) && receivedBuffer[xReceivedBytes - 1] != ulNextValue)){
+      ((sizeFromMessage > 2) && recieveBuffer[xReceivedBytes - 1] != ulNextValue)){
     app_measurementErrorHandler();
   }
 
-  memset( receivedBuffer, 0x00, xReceivedBytes );
+  memset( recieveBuffer, 0x00, xReceivedBytes );
   ulNextValue++;
   generateInterruptIPC_endMeasurement();
 }
 
-void app_measureCore2Sending(void){
+void app_measureCore2Sending(uint32_t dataSize){
+  static char sendBuffer[MAX_DATA_SIZE];
+  static uint8_t nextValue = 0;
+  for (uint32_t j = 0; j < dataSize, ++j){
+    sendBuffer[j] = nextValue;
+  }
+  sprintf((char*)sendBuffer, "%lu", dataSize);
   /* TODO delay*/
   /* Start measurement */
   shStartTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
   /* Message buffer send */
-  /* TODO */
+  xMessageBufferSend(xDataMessageBuffers[MB2TO1_IDX],
+                     (void*) sendBuffer,
+                     dataSize,
+                     mbaDONT_BLOCK);
+  ++nextValue;                     
+}
+
+/* Interrupt for m7 core, handling message buffer function */
+void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
+  MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) updatedMessageBuffer;
+  
+  if( xUpdatedBuffer != xControlMessageBuffer[MB2TO1_IDX] )
+  {
+    /* Use xControlMessageBuffer to pass the handle of the message buffer
+    written to by core 1 to the interrupt handler about to be generated in
+    core 2. */
+    xMessageBufferSend( xControlMessageBuffer[MB2TO1_IDX], &xUpdatedBuffer,
+                        sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
+    
+    /* This is where the interrupt would be generated. */
+    HAL_EXTI_D2_EventInputConfig(EXTI_LINE4, EXTI_MODE_IT, DISABLE);
+    HAL_EXTI_D1_EventInputConfig(EXTI_LINE4, EXTI_MODE_IT, ENABLE);
+    HAL_EXTI_GenerateSWInterrupt(EXTI_LINE4);
+  }
 }
 
 /* Interrupt for m7 core, signaling end of measurement */
@@ -123,8 +151,10 @@ void interruptHandlerIPC_startMeas(void){
 void app_initMessageBufferAMP(void){
   /* Timer for time measurement */
   htim5.Instance = TIM5;
-  /* TODO */
+  /* Int config for end of meas */
   HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
+  /* Int config for message buffer*/
+  HAL_EXTI_EdgeConfig(EXTI_LINE4, EXTI_RISING_EDGE);
 
   /* SW interrupt for message buffer */
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
@@ -135,23 +165,13 @@ void app_initMessageBufferAMP(void){
   
   /* m7 core initializes the message buffers */
   if (( xControlMessageBuffer[MB1TO2_IDX] == NULL ) |
-      ( xDataMessageBuffers[MB1TO2_IDX] == NULL ))
+      ( xDataMessageBuffers[MB1TO2_IDX] == NULL ) |
+      ( xControlMessageBuffer[MB2TO1_IDX] == NULL) |
+      ( xDataMessageBuffers[MB2TO1_IDX] == NULL))
   {
     Error_Handler();
   }
 }
-
-// void app_createMessageBuffers(void){
-//   /* Create control message buffer */
-//   xControlMessageBuffer = xMessageBufferCreateStatic(
-//       mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctr, 
-//       &xStreamBufferStruct_ctrl);  
-//   /* Create data message buffer */
-//   xDataMessageBuffers = xMessageBufferCreateStatic(
-//       mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0],
-//       &xStreamBufferStruct);
-//   configASSERT( xDataMessageBuffers );
-// }
 
 /* Creating the tasks for the m4 core */
 void app_createTasks(void){

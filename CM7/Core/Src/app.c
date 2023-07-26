@@ -3,8 +3,20 @@
 TaskHandle_t core1TaskHandle;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-  interruptHandlerIPC_endMeas();
-  HAL_EXTI_D1_ClearFlag(EXTI_LINE2);
+  switch (GPIO_Pin)
+  {
+  case GPIO_PIN_2:
+    interruptHandlerIPC_endMeas();
+    HAL_EXTI_D1_ClearFlag(EXTI_LINE2);
+    break;
+  case GPIO_PIN_4:
+    interruptHandlerIPC_messageBuffer();
+    HAL_EXTI_D2_ClearFlag(EXTI_LINE4);
+    break;
+  default:
+    app_measurementErrorHandler();
+    break;
+  }
 }
 
 void core1MeasurementTask( void *pvParameters ){
@@ -83,7 +95,7 @@ void app_measureCore1Sending(uint32_t dataSize){
   /* Assembling the message*/
   static char sendBuffer[MAX_DATA_SIZE];
   static uint8_t nextValue = 0;
-  for(size_t j = 0; j < dataSize; ++j){
+  for(uint32_t j = 0; j < dataSize; ++j){
     sendBuffer[j] = nextValue;
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
@@ -95,13 +107,51 @@ void app_measureCore1Sending(uint32_t dataSize){
                       dataSize,
                       mbaDONT_BLOCK );
   
-  nextValue = nextValue + 1;
+  ++nextValue;
   /* Waiting for the signal from the other core */
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 }
 
 void app_measureCore1Recieving(void){
-  /* TODO */
+  static uint8_t nextValue = 0;
+  uint32_t recievedBytes, sizeFromMessage;
+  static uint8_t recieveBuffer[MAX_DATA_SIZE];
+
+  recievedBytes = xMessageBufferReceive(xDataMessageBuffers[MB2TO1_IDX],
+                                        recieveBuffer,
+                                        sizeof(recieveBuffer),
+                                        portMAX_DELAY);
+  shEndTime = __HAL_TIM_GET_COUNTER(&htim5);
+
+  /* Error checking, size and last element */
+  sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
+  if(recievedBytes != sizeFromMessage ||
+      (sizeFromMessage > 2 && recieveBuffer[recievedBytes - 1] != nextValue)){
+    app_measurementErrorHandler();
+    }
+
+  memset(recieveBuffer, 0x00, recievedBytes);
+  ++nextValue;
+}
+
+/* TODO refactor both it handler and it generation for mb, almost the same
+  even the measurement task can be a parametrized single func*/
+void interruptHandlerIPC_messageBuffer(void){
+  MessageBufferHandle_t xUpdatedMessageBuffer;
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  
+  /* xControlMessageBuffer contains the handle of the message buffer that
+  contains data. */
+  if( xMessageBufferReceiveFromISR( xControlMessageBuffer[MB2TO1_IDX],
+                                   &xUpdatedMessageBuffer,
+                                   sizeof( xUpdatedMessageBuffer ),
+                                   &xHigherPriorityTaskWoken ) == sizeof( xUpdatedMessageBuffer ) )
+  {
+    /* API function notifying any task waiting for the messagebuffer*/
+    xMessageBufferSendCompletedFromISR( xUpdatedMessageBuffer, &xHigherPriorityTaskWoken );
+  }
+  /* Scheduling with normal FreeRTOS semantics */
+  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 void interruptHandlerIPC_endMeas( void ){
@@ -134,7 +184,7 @@ void generateInterruptIPC_startMeas(void){
                                EXTI_MODE_IT, DISABLE);
   HAL_EXTI_D2_EventInputConfig(START_MEAS_INT_EXTI_LINE,
                                EXTI_MODE_IT, ENABLE);
-  HAL_EXTI_GenerateSWInterrupt(START_MEAS_INT_EXTI_LINE); /* TODO this line breaks uart */
+  HAL_EXTI_GenerateSWInterrupt(START_MEAS_INT_EXTI_LINE);
 }
 
 void app_initMessageBufferAMP(void){
@@ -146,9 +196,13 @@ void app_initMessageBufferAMP(void){
   /* SW interrupt for end of measurement */
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+  /* SW interrupt for message buffer */
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0xFU, 1U);
+  HAL_NVIC_EnableIRQ(EXTI_LINE_4);
 }
 
 void app_createMessageBuffers(void){
+  /* MBs used for m7->m4 communication */
   /* Create control message buffer */
   xControlMessageBuffer[MB1TO2_IDX] = xMessageBufferCreateStatic(
       mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB1TO2_IDX], 
@@ -159,6 +213,17 @@ void app_createMessageBuffers(void){
       &xStreamBufferStruct[MB1TO2_IDX*2 + 1]);
   configASSERT( xDataMessageBuffers[MB1TO2_IDX] );
   configASSERT( xControlMessageBuffer[MB1TO2_IDX] );
+  
+  /* MBs used for m4->m7 communication */
+  xControlMessageBuffer[MB2TO1_IDX] = xMessageBufferCreateStatic(
+      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB2TO1_IDX], 
+      &xStreamBufferStruct[MB2TO1_IDX*2]);  
+  /* Create data message buffer */
+  xDataMessageBuffers[MB2TO1_IDX] = xMessageBufferCreateStatic(
+      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB2TO1_IDX][0],
+      &xStreamBufferStruct[MB2TO1_IDX*2 + 1]);
+  configASSERT( xDataMessageBuffers[MB2TO1_IDX] );
+  configASSERT( xControlMessageBuffer[MB2TO1_IDX] );
 }
 
 void app_createTasks(void){
