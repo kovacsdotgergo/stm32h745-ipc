@@ -72,7 +72,6 @@ void core1MeasurementTask( void *pvParameters ){
       switch (shDirection)
       {
       case M7_SEND: /* M7 sends the message */
-        /* TODO delay while other core is not ready */
         app_measureCore1Sending((uint32_t)shDataSize); /* Cast to remove volatile, size doesn't change during mesurement */
         break;
       case M7_RECIEVE:
@@ -99,7 +98,7 @@ void app_measureCore1Sending(uint32_t dataSize){
     sendBuffer[j] = nextValue;
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
-
+  vTaskDelay(1/portTICK_PERIOD_MS);
   /* Start of measurement and sending the data */
   shStartTime = __HAL_TIM_GET_COUNTER(&htim5);
   xMessageBufferSend( xDataMessageBuffers[MB1TO2_IDX], 

@@ -82,10 +82,9 @@ void app_measureCore2Sending(uint32_t dataSize){
     sendBuffer[j] = nextValue;
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
-  /* TODO delay*/
+  vTaskDelay(1/portTICK_PERIOD_MS);
   /* Start measurement */
   shStartTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
-  /* Message buffer send */
   xMessageBufferSend(xDataMessageBuffers[MB2TO1_IDX],
                      (void*) sendBuffer,
                      dataSize,
