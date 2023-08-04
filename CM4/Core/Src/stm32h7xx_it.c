@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
+#include "time_meas.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -177,6 +178,10 @@ void TIM1_UP_IRQHandler(void)
 void EXTI0_IRQHandler( void )
 {
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+void EXTI3_IRQHandler(void){
+  HAL_GPIO_EXTI_IRQHandler(START_MEAS_GPIO_PIN);
 }
 
 /* USER CODE END 1 */

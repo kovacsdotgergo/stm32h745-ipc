@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
+#include "time_meas.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -193,4 +194,9 @@ void USART3_IRQHandler(void)
 void EXTI2_IRQHandler(void){
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
 }
+
+void EXTI4_IRQHandler(void){
+  HAL_GPIO_EXTI_IRQHandler(MB2TO1_GPIO_PIN);
+}
+
 /* USER CODE END 1 */

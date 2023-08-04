@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "uart_state_machine.h"
+#include "app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -87,7 +88,6 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-static TaskHandle_t core1TaskHandle;
 
 /* USER CODE END PV */
 
@@ -101,9 +101,7 @@ static void MX_TIM5_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-static void prvCore1Task( void *pvParameters );
-static void prvCore1InterruptHandler( void );
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -139,18 +137,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
-  sensitive to rising edge : Configured only once */
-  HAL_EXTI_EdgeConfig(EXTI_LINE0 , EXTI_RISING_EDGE);
+  app_initMessageBufferAMP();
+  app_createMessageBuffers();
 
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 0xFU, 0U);
-  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
-  /* Create control message buffer */
-  xControlMessageBuffer = xMessageBufferCreateStatic( mbaCONTROL_MESSAGE_BUFFER_SIZE,ucStorageBuffer_ctr ,&xStreamBufferStruct_ctrl);  
-  /* Create data message buffer */
-  xDataMessageBuffers = xMessageBufferCreateStatic( mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[0], &xStreamBufferStruct);
-  configASSERT( xDataMessageBuffers );
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -211,10 +200,7 @@ Error_Handler();
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
-  xTaskCreate(prvCore1Task, "AMPCore1", configMINIMAL_STACK_SIZE, \
-      NULL, mainAMP_TASK_PRIORITY, &core1TaskHandle);
-  configASSERT( core1TaskHandle );
+  app_createTasks();
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -252,7 +238,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -268,13 +254,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 18;
+  RCC_OscInitStruct.PLL.PLLN = 30;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 8;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
-  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOMEDIUM;
-  RCC_OscInitStruct.PLL.PLLFRACN = 6144;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -518,128 +504,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-/* Own functions --------------------------------------------------------*/
-/* Reimplementation of sbSEND_COMPLETED(), defined as follows in FreeRTOSConfig.h:
-   #define sbSEND_COMPLETED( pxStreamBuffer ) vGenerateCore2Interrupt( pxStreamBuffer )
 
-  Called from within xMessageBufferSend().  As this function also calls
-  xMessageBufferSend() itself it is necessary to guard against a recursive
-  call.  If the message buffer just updated is the message buffer written to
-  by this function, then this is a recursive call, and the function can just
-  exit without taking further action.
-*/
-void vGenerateCore2Interrupt( void * xUpdatedMessageBuffer )
-{
-  MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) xUpdatedMessageBuffer;
-  
-  if( xUpdatedBuffer != xControlMessageBuffer )
-  {
-    /* Use xControlMessageBuffer to pass the handle of the message buffer
-    written to by core 1 to the interrupt handler about to be generated in
-    core 2. */
-    xMessageBufferSend( xControlMessageBuffer, &xUpdatedBuffer, sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
-    
-    /* This is where the interrupt would be generated. */
-    HAL_EXTI_D1_EventInputConfig(EXTI_LINE0 , EXTI_MODE_IT,  DISABLE);
-    HAL_EXTI_D2_EventInputConfig(EXTI_LINE0 , EXTI_MODE_IT,  ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(EXTI_LINE0);
-  }
-}
-
-static void prvCore1InterruptHandler( void ){
-  /* Signaling to task with notification*/
-  BaseType_t xHigherPriorityTaskWoken;
-  vTaskNotifyGiveFromISR(core1TaskHandle, &xHigherPriorityTaskWoken);
-  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-  prvCore1InterruptHandler();
-  HAL_EXTI_D1_ClearFlag(EXTI_LINE2);
-}
-
-/* Tasks ----------------------------------------------------------------*/
-
-/* uart todo*/
-
-/* This task will periodically send data to tasks running on Core 2
-   via message buffers. */
-static void prvCore1Task( void *pvParameters )
-{
-  uint8_t ulNextValue = 0;
-  const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
-  static char sendBuffer[MAX_DATA_SIZE];
-  uint8_t uartInputBuffer;
-  uint8_t uartOutputBuffer[32];
-
-  uartStateMachine stateMachine = {
-    .state = IDLE,
-    .stringNumMeas = {0},
-    .stringMeasData = {0},
-    .stringIndex = 0,
-  };
-  bool startMeas;
-  uint32_t numMeas, dataSize;
-  uartStates lastState = IDLE;
-  
-  /* Remove warning about unused parameters. */
-  ( void ) pvParameters;
-  
-  for( ;; )
-  {
-    /* Waiting for a start signal */
-    HAL_StatusTypeDef receiveSuccess;
-    do {
-      receiveSuccess = HAL_UART_Receive(&huart3, &uartInputBuffer,
-          sizeof(uartInputBuffer), 0);
-      
-      if(receiveSuccess == HAL_OK){
-        /* Step if new char */
-        startMeas = uartStateMachineStep(uartInputBuffer, &stateMachine,
-            &numMeas, &dataSize);
-        /* Echoing */
-        HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
-        if(lastState != stateMachine.state){
-          HAL_UART_Transmit(&huart3, "\r\n", 2, 100);
-        }
-        lastState = stateMachine.state;
-      }
-
-      vTaskDelay(uartDelay); // vtaskdelay_until could be used
-    } while(receiveSuccess != HAL_OK || !startMeas);
-    /* Sending data size for error deteciton */
-    if(dataSize > MAX_DATA_SIZE){
-      dataSize = MAX_DATA_SIZE;
-    }
-    for(uint32_t i = 0; i < numMeas; ++i){
-      /* Sending the data. The size is given over uart */
-      for(size_t j = 0; j < dataSize; ++j){
-        sendBuffer[j] = ulNextValue;
-      }
-
-      sprintf((char*)sendBuffer, "%u", dataSize);
-      
-      /* Start of measurement and sending the data */
-      startTime = __HAL_TIM_GET_COUNTER(&htim5);
-      xMessageBufferSend( xDataMessageBuffers, 
-                          ( void * ) sendBuffer,
-                          dataSize,
-                          mbaDONT_BLOCK );
-      
-      /* Waiting for the signal from the other core */
-      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-      uint32_t runTime = endTime - startTime - runtimeOffset;
-      /* Printing measurement */
-      memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
-      sprintf(uartOutputBuffer, "%lu\r\n", runTime);
-      HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen(uartOutputBuffer), HAL_MAX_DELAY);
-      
-      ulNextValue = ulNextValue + 1;
-    }
-  }
-}
-
-/* End of own functions -------------------------------------------------*/
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
