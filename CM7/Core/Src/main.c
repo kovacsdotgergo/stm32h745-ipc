@@ -26,7 +26,7 @@
 #include "time_meas.h"
 
 //#include "stm32h7xx_hal.h"
-#include "MessageBufferAMP.h"
+#include "shared_variables.h"
 #include <stdio.h>
 #include <string.h>
 #include "uart_state_machine.h"

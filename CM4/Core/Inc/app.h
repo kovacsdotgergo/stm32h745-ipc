@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 /* Own files */
-#include "MessageBufferAMP.h"
+#include "shared_variables.h"
 #include "time_meas.h"
 
 #define START_MEAS_BIT 0x01
