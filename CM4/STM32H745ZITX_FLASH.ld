@@ -44,8 +44,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
 FLASH (rx)     : ORIGIN = 0x08100000, LENGTH = 1024K
-RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 256K /* before: 288K */
-RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 34K
+RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 288K /* before: 288K */
+RAM_D1 (xrw)   : ORIGIN = 0x24000000, LENGTH = 512K
 /* RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 128
 RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000080, LENGTH = 128
 RAM_D3_Z3 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
@@ -164,11 +164,11 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  .shared 0x38000000 :
+  .shared 0x24010000 :
   {
     . = ALIGN(4);
     *(.shared)
-  } > RAM_D3
+  } > RAM_D1
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
