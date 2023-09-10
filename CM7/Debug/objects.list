@@ -1,4 +1,4 @@
-"./Common/Src/MessageBufferAMP.o"
+"./Common/Src/shared_variables.o"
 "./Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.o"
 "./Core/Src/app.o"
 "./Core/Src/freertos.o"

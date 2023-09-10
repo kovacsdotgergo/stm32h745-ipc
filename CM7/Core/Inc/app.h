@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 /* Own files*/
-#include "MessageBufferAMP.h"
+#include "shared_variables.h"
 #include "time_meas.h"
 #include "uart_state_machine.h"
 
