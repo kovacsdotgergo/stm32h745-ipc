@@ -165,7 +165,7 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  .shared 0x10000000 :
+  .shared 0x10010000 :
   {
     . = ALIGN(4);
     *(.shared)

@@ -183,7 +183,7 @@ SECTIONS
     . = ALIGN(8);
   } >RAM_D1
 
-  .shared 0x30000000 :
+  .shared 0x30010000 :
   {
     . = ALIGN(4);
     *(.shared)
