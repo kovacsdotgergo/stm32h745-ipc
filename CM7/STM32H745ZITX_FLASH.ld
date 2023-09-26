@@ -183,11 +183,11 @@ SECTIONS
     . = ALIGN(8);
   } >RAM_D1
 
-  .shared 0x24010000 :
+  .shared 0x38000000 :
   {
     . = ALIGN(4);
     *(.shared)
-  } > RAM_D1
+  } > RAM_D3
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :
