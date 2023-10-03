@@ -11,6 +11,7 @@
         "message_buffer.h": "c",
         "stdio.h": "c",
         "stm32h7xx_hal.h": "c",
-        "stm32h7xx_hal_conf.h": "c"
+        "stm32h7xx_hal_conf.h": "c",
+        "shared_variables.h": "c"
     }
 }
