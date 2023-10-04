@@ -12,6 +12,7 @@
 /* Own files*/
 #include "shared_variables.h"
 #include "time_meas.h"
+#include "meas_control.h"
 #include "uart_state_machine.h"
 
 extern TaskHandle_t core1TaskHandle;
@@ -27,15 +28,10 @@ void core1MeasurementTask( void *pvParameters );
 void app_measureCore1Sending(uint32_t dataSize);
 void app_measureCore1Recieving(void);
 
-/* Interrupt handler for int triggered from Core2, used for singaling end
-    of measurement */
-void interruptHandlerIPC_endMeas( void );
 /* MessageBuffer functionality, recieving message */
 void interruptHandlerIPC_messageBuffer(void);
 /* Triggering interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer );
-/* Triggering interupt used for IPC signaling start of meas */
-void generateInterruptIPC_startMeas(void);
 
 void app_initMessageBufferAMP(void);
 void app_createMessageBuffers(void);

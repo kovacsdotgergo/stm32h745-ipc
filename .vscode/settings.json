@@ -12,6 +12,9 @@
         "stdio.h": "c",
         "stm32h7xx_hal.h": "c",
         "stm32h7xx_hal_conf.h": "c",
-        "shared_variables.h": "c"
+        "shared_variables.h": "c",
+        "meas_control.h": "c",
+        "stm32h7xx_it.h": "c",
+        "task.h": "c"
     }
 }

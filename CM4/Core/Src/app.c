@@ -13,7 +13,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     break;
   case START_MEAS_GPIO_PIN:
     interruptHandlerIPC_startMeas();
-    HAL_EXTI_D2_ClearFlag(START_MEAS_INT_EXTI_LINE);
     break;
   default:
     app_measurementErrorHandler();
@@ -37,13 +36,13 @@ void core2MeasurementTask( void *pvParameters )
     } while (!(notifiedValue & START_MEAS_BIT));
     
     /* Perform one measurement */
-    switch (shDirection)
+    switch (ctrl_getDirection())
     {
     case M7_SEND: /* m7 sends, this core recieves */
       app_measureCore2Recieving();
       break;
     case M7_RECIEVE:
-      app_measureCore2Sending(shDataSize);
+      app_measureCore2Sending(ctrl_getDataSize());
       break;
     default:
       app_measurementErrorHandler();
@@ -61,7 +60,7 @@ void app_measureCore2Recieving(void){
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY );
-  shEndTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
+  time_endTime(); /* global shared variable */
 
   /* Checking the size and last element of the data */
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
@@ -84,7 +83,7 @@ void app_measureCore2Sending(uint32_t dataSize){
   sprintf((char*)sendBuffer, "%lu", dataSize);
   vTaskDelay(1/portTICK_PERIOD_MS);
   /* Start measurement */
-  shStartTime = __HAL_TIM_GET_COUNTER(&htim5); /* global shared variable */
+  time_startTime();
   xMessageBufferSend(xDataMessageBuffers[MB2TO1_IDX],
                      (void*) sendBuffer,
                      dataSize,
@@ -111,13 +110,6 @@ void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
   }
 }
 
-/* Interrupt for m7 core, signaling end of measurement */
-void generateInterruptIPC_endMeasurement(void){
-  HAL_EXTI_D2_EventInputConfig(EXTI_LINE2 , EXTI_MODE_IT,  DISABLE);
-  HAL_EXTI_D1_EventInputConfig(EXTI_LINE2 , EXTI_MODE_IT,  ENABLE);
-  HAL_EXTI_GenerateSWInterrupt(EXTI_LINE2);
-}
-
 /* Handler for the interrupts that are triggered on core 1 but execute on core 2. */
 void interruptHandlerIPC_messageBuffer( void ){
   MessageBufferHandle_t xUpdatedMessageBuffer;
@@ -137,30 +129,17 @@ void interruptHandlerIPC_messageBuffer( void ){
   portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
-void interruptHandlerIPC_startMeas(void){
-  /* Signaling to task with notification*/
-  BaseType_t xHigherPriorityTaskWoken;
-  /* TODO bad solution, message buffer uses notification as well*/
-  (void)xTaskNotifyFromISR(core2TaskHandle, START_MEAS_BIT, eSetBits,
-                     &xHigherPriorityTaskWoken);
-  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-
 /* Init function */
 void app_initMessageBufferAMP(void){
   /* Timer for time measurement */
-  htim5.Instance = TIM5;
-  /* Int config for end of meas */
-  HAL_EXTI_EdgeConfig(EXTI_LINE2, EXTI_RISING_EDGE);
+  htim5.Instance = TIM5; // IMPORTANT to be able to read the timer! todo move somewhere else
+
   /* Int config for message buffer*/
   HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
   /* SW interrupt for message buffer */
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-  /* SW interrupt to signal start of meas */
-  HAL_NVIC_SetPriority(START_MEAS_INT_EXTI_IRQ, 0xFU, 1U);
-  HAL_NVIC_EnableIRQ(START_MEAS_INT_EXTI_IRQ);
   
   /* m7 core initializes the message buffers */
   if (( xControlMessageBuffer[MB1TO2_IDX] == NULL ) |

@@ -126,6 +126,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  ctrl_initInterrupts();
   app_initMessageBufferAMP();
   /* USER CODE END Init */
 
