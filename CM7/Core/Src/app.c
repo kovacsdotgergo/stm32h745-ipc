@@ -13,7 +13,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     HAL_EXTI_D1_ClearFlag(MB2TO1_GPIO_PIN);
     break;
   default:
-    app_measurementErrorHandler();
+    ErrorHandler();
     break;
   }
 }
@@ -76,7 +76,7 @@ void core1MeasurementTask( void *pvParameters ){
         app_measureCore1Recieving();
         break;
       default:
-        app_measurementErrorHandler();
+        ErrorHandler();
         break;
       }
       /* Printing measurement result */
@@ -124,45 +124,11 @@ void app_measureCore1Recieving(void){
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(recievedBytes != sizeFromMessage ||
       (sizeFromMessage > 2 && recieveBuffer[recievedBytes - 1] != nextValue)){
-    app_measurementErrorHandler();
+    ErrorHandler();
     }
 
   memset(recieveBuffer, 0x00, recievedBytes);
   ++nextValue;
-}
-
-void app_initMessageBufferAMP(void){
-  /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
-  sensitive to rising edge : Configured only once */
-  HAL_EXTI_EdgeConfig(MB1TO2_INT_EXTI_LINE, EXTI_RISING_EDGE);
-  /* SW interrupt for message buffer */
-  HAL_NVIC_SetPriority(MB2TO1_INT_EXTI_IRQ, 0xFU, 1U);
-  HAL_NVIC_EnableIRQ(MB2TO1_INT_EXTI_IRQ);
-}
-
-void app_createMessageBuffers(void){
-  /* MBs used for m7->m4 communication */
-  /* Create control message buffer */
-  xControlMessageBuffer[MB1TO2_IDX] = xMessageBufferCreateStatic(
-      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB1TO2_IDX], 
-      &xStreamBufferStruct[MB1TO2_IDX*2]);  
-  /* Create data message buffer */
-  xDataMessageBuffers[MB1TO2_IDX] = xMessageBufferCreateStatic(
-      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB1TO2_IDX][0],
-      &xStreamBufferStruct[MB1TO2_IDX*2 + 1]);
-  configASSERT( xDataMessageBuffers[MB1TO2_IDX] );
-  configASSERT( xControlMessageBuffer[MB1TO2_IDX] );
-  
-  /* MBs used for m4->m7 communication */
-  xControlMessageBuffer[MB2TO1_IDX] = xMessageBufferCreateStatic(
-      mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB2TO1_IDX], 
-      &xStreamBufferStruct[MB2TO1_IDX*2]);  
-  /* Create data message buffer */
-  xDataMessageBuffers[MB2TO1_IDX] = xMessageBufferCreateStatic(
-      mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB2TO1_IDX][0],
-      &xStreamBufferStruct[MB2TO1_IDX*2 + 1]);
-  configASSERT( xDataMessageBuffers[MB2TO1_IDX] );
-  configASSERT( xControlMessageBuffer[MB2TO1_IDX] );
 }
 
 void app_createTasks(void){
@@ -171,9 +137,4 @@ void app_createTasks(void){
   xTaskCreate(core1MeasurementTask, "AMPCore1", configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, &core1TaskHandle);
   configASSERT( core1TaskHandle );
-}
-
-void app_measurementErrorHandler(void){
-  /* TODO: disable interrupt? */
-  while(1){} /* Blocking in case of error */
 }

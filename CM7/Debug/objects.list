@@ -4,6 +4,7 @@
 "./Common/Src/time_meas.o"
 "./Core/Src/app.o"
 "./Core/Src/freertos.o"
+"./Core/Src/ipc_mb.o"
 "./Core/Src/main.o"
 "./Core/Src/meas_control.o"
 "./Core/Src/stm32h7xx_hal_msp.o"

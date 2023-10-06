@@ -16,6 +16,8 @@
         "meas_control.h": "c",
         "stm32h7xx_it.h": "c",
         "task.h": "c",
-        "ipc_mb_common.h": "c"
+        "ipc_mb_common.h": "c",
+        "ipc_mb.h": "c",
+        "error_handler.h": "c"
     }
 }

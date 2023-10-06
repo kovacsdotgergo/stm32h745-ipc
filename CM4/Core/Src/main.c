@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app.h"
+#include "message_buffer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -127,7 +128,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   ctrl_initInterrupts();
-  app_initMessageBufferAMP();
+  initIPC_MessageBuffers();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */

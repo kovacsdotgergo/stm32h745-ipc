@@ -15,7 +15,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     interruptHandlerIPC_startMeas();
     break;
   default:
-    app_measurementErrorHandler();
+    ErrorHandler();
     break;
   }
 }
@@ -45,7 +45,7 @@ void core2MeasurementTask( void *pvParameters )
       app_measureCore2Sending(ctrl_getDataSize());
       break;
     default:
-      app_measurementErrorHandler();
+      ErrorHandler();
       break;
     }
   }
@@ -66,7 +66,7 @@ void app_measureCore2Recieving(void){
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(xReceivedBytes != sizeFromMessage || 
       ((sizeFromMessage > 2) && recieveBuffer[xReceivedBytes - 1] != ulNextValue)){
-    app_measurementErrorHandler();
+    ErrorHandler();
   }
 
   memset( recieveBuffer, 0x00, xReceivedBytes );
@@ -91,39 +91,9 @@ void app_measureCore2Sending(uint32_t dataSize){
   ++nextValue;                     
 }
 
-/* Init function */
-void app_initMessageBufferAMP(void){
-  /* Timer for time measurement */
-  htim5.Instance = TIM5; // IMPORTANT to be able to read the timer! todo move somewhere else
-
-  /* Int config for message buffer*/
-  HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
-
-  /* SW interrupt for message buffer */
-  HAL_NVIC_SetPriority(MB1TO2_INT_EXTI_IRQ, 0xFU, 0U);
-  HAL_NVIC_EnableIRQ(MB1TO2_INT_EXTI_IRQ);
-  
-  /* m7 core initializes the message buffers */
-  if (( xControlMessageBuffer[MB1TO2_IDX] == NULL ) |
-      ( xDataMessageBuffers[MB1TO2_IDX] == NULL ) |
-      ( xControlMessageBuffer[MB2TO1_IDX] == NULL) |
-      ( xDataMessageBuffers[MB2TO1_IDX] == NULL))
-  {
-    Error_Handler();
-  }
-}
-
 /* Creating the tasks for the m4 core */
 void app_createTasks(void){
   xTaskCreate(core2MeasurementTask, "AMPCore2", configMINIMAL_STACK_SIZE,
               NULL, tskIDLE_PRIORITY + 1, &core2TaskHandle);
   configASSERT(core2TaskHandle);
-}
-
-/* Error handler when the data isn't correct*/
-void app_measurementErrorHandler(void){
-  while(1){
-    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    vTaskDelay(pdMS_TO_TICKS(500));
-  }
 }

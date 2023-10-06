@@ -28,6 +28,7 @@
 #include <string.h>
 #include "uart_state_machine.h"
 #include "app.h"
+#include "ipc_mb.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -147,8 +148,8 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   ctrl_initInterrupts();
-  app_initMessageBufferAMP();
-  app_createMessageBuffers();
+  initIPC_MessageBuffers();
+  createIPCMessageBuffers();
 
   /* USER CODE END Init */
 

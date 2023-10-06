@@ -14,6 +14,7 @@
 #include "time_meas.h"
 #include "meas_control.h"
 #include "uart_state_machine.h"
+#include "error_handler.h"
 
 extern TaskHandle_t core1TaskHandle;
 
@@ -33,12 +34,6 @@ void interruptHandlerIPC_messageBuffer(void);
 /* Triggering interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer );
 
-void app_initMessageBufferAMP(void);
-void app_createMessageBuffers(void);
 void app_createTasks(void);
-/* Infinite loop in case of error in the main task */
-void app_measurementErrorHandler(void);
-
-
 
 #endif /* APP_H */
