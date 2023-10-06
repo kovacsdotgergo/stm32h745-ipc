@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "shared_variables.h"
+//#include "ipc_mb_common.h"
 #include <stdio.h>
 #include <string.h>
 #include "uart_state_machine.h"

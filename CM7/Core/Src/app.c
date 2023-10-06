@@ -131,48 +131,10 @@ void app_measureCore1Recieving(void){
   ++nextValue;
 }
 
-/* TODO refactor both it handler and it generation for mb, almost the same
-  even the measurement task can be a parametrized single func*/
-void interruptHandlerIPC_messageBuffer(void){
-  MessageBufferHandle_t xUpdatedMessageBuffer;
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  
-  /* xControlMessageBuffer contains the handle of the message buffer that
-  contains data. */
-  if( xMessageBufferReceiveFromISR( xControlMessageBuffer[MB2TO1_IDX],
-                                   &xUpdatedMessageBuffer,
-                                   sizeof( xUpdatedMessageBuffer ),
-                                   &xHigherPriorityTaskWoken ) == sizeof( xUpdatedMessageBuffer ) )
-  {
-    /* API function notifying any task waiting for the messagebuffer*/
-    xMessageBufferSendCompletedFromISR( xUpdatedMessageBuffer, &xHigherPriorityTaskWoken );
-  }
-  /* Scheduling with normal FreeRTOS semantics */
-  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-
-void generateInterruptIPC_messageBuffer( void * xUpdatedMessageBuffer )
-{
-  MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) xUpdatedMessageBuffer;
-  
-  if( xUpdatedBuffer != xControlMessageBuffer[MB1TO2_IDX] )
-  {
-    /* Use xControlMessageBuffer to pass the handle of the message buffer
-    written to by core 1 to the interrupt handler about to be generated in
-    core 2. */
-    xMessageBufferSend( xControlMessageBuffer[MB1TO2_IDX], &xUpdatedBuffer, sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
-    
-    /* This is where the interrupt would be generated. */
-    HAL_EXTI_D1_EventInputConfig(EXTI_LINE0, EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D2_EventInputConfig(EXTI_LINE0, EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(EXTI_LINE0);
-  }
-}
-
 void app_initMessageBufferAMP(void){
   /* AIEC Common configuration: make CPU1 and CPU2 SWI line0
   sensitive to rising edge : Configured only once */
-  HAL_EXTI_EdgeConfig(EXTI_LINE0, EXTI_RISING_EDGE);
+  HAL_EXTI_EdgeConfig(MB1TO2_INT_EXTI_LINE, EXTI_RISING_EDGE);
   /* SW interrupt for message buffer */
   HAL_NVIC_SetPriority(MB2TO1_INT_EXTI_IRQ, 0xFU, 1U);
   HAL_NVIC_EnableIRQ(MB2TO1_INT_EXTI_IRQ);

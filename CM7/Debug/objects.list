@@ -1,5 +1,5 @@
+"./Common/Src/ipc_mb_common.o"
 "./Common/Src/meas_control_common.o"
-"./Common/Src/shared_variables.o"
 "./Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.o"
 "./Common/Src/time_meas.o"
 "./Core/Src/app.o"

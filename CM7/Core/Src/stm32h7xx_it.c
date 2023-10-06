@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "meas_control_common.h"
-#include "shared_variables.h"
+#include "ipc_mb_common.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

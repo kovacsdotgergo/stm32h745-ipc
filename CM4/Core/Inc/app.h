@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 /* Own files */
-#include "shared_variables.h"
+#include "ipc_mb_common.h"
 #include "time_meas.h"
 #include "meas_control.h"
 

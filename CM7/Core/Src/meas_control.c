@@ -21,9 +21,5 @@ void interruptHandlerIPC_endMeas( void ){
 }
 
 void generateInterruptIPC_startMeas(void){
-    HAL_EXTI_D1_EventInputConfig(START_MEAS_INT_EXTI_LINE,
-                                EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D2_EventInputConfig(START_MEAS_INT_EXTI_LINE,
-                                EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(START_MEAS_INT_EXTI_LINE);
+    generateIT_IPC(START_MEAS_INT_EXTI_LINE);
 }

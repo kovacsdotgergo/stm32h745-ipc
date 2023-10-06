@@ -7,9 +7,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   switch (GPIO_Pin)
   {
-  case GPIO_PIN_0:
+  case MB1TO2_GPIO_PIN:
     interruptHandlerIPC_messageBuffer();
-    HAL_EXTI_D2_ClearFlag(EXTI_LINE0);
+    HAL_EXTI_D2_ClearFlag(MB1TO2_INT_EXTI_LINE);
     break;
   case START_MEAS_GPIO_PIN:
     interruptHandlerIPC_startMeas();
@@ -91,44 +91,6 @@ void app_measureCore2Sending(uint32_t dataSize){
   ++nextValue;                     
 }
 
-/* Interrupt for m7 core, handling message buffer function */
-void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
-  MessageBufferHandle_t xUpdatedBuffer = ( MessageBufferHandle_t ) updatedMessageBuffer;
-  
-  if( xUpdatedBuffer != xControlMessageBuffer[MB2TO1_IDX] )
-  {
-    /* Use xControlMessageBuffer to pass the handle of the message buffer
-    written to by core 1 to the interrupt handler about to be generated in
-    core 2. */
-    xMessageBufferSend( xControlMessageBuffer[MB2TO1_IDX], &xUpdatedBuffer,
-                        sizeof( xUpdatedBuffer ), mbaDONT_BLOCK );
-    
-    /* This is where the interrupt would be generated. */
-    HAL_EXTI_D2_EventInputConfig(MB2TO1_INT_EXTI_LINE, EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D1_EventInputConfig(MB2TO1_INT_EXTI_LINE, EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(MB2TO1_INT_EXTI_LINE);
-  }
-}
-
-/* Handler for the interrupts that are triggered on core 1 but execute on core 2. */
-void interruptHandlerIPC_messageBuffer( void ){
-  MessageBufferHandle_t xUpdatedMessageBuffer;
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  
-  /* xControlMessageBuffer contains the handle of the message buffer that
-  contains data. */
-  if( xMessageBufferReceiveFromISR( xControlMessageBuffer[MB1TO2_IDX],
-                                   &xUpdatedMessageBuffer,
-                                   sizeof( xUpdatedMessageBuffer ),
-                                   &xHigherPriorityTaskWoken ) == sizeof( xUpdatedMessageBuffer ) )
-  {
-    /* API function notifying any task waiting for the messagebuffer*/
-    xMessageBufferSendCompletedFromISR( xUpdatedMessageBuffer, &xHigherPriorityTaskWoken );
-  }
-  /* Scheduling with normal FreeRTOS semantics */
-  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-
 /* Init function */
 void app_initMessageBufferAMP(void){
   /* Timer for time measurement */
@@ -138,8 +100,8 @@ void app_initMessageBufferAMP(void){
   HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
   /* SW interrupt for message buffer */
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0xFU, 0U);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  HAL_NVIC_SetPriority(MB1TO2_INT_EXTI_IRQ, 0xFU, 0U);
+  HAL_NVIC_EnableIRQ(MB1TO2_INT_EXTI_IRQ);
   
   /* m7 core initializes the message buffers */
   if (( xControlMessageBuffer[MB1TO2_IDX] == NULL ) |

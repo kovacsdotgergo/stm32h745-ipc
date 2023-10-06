@@ -23,4 +23,7 @@ uint32_t ctrl_getDataSize(void);
 void ctrl_setDirection(measDirection direction);
 measDirection ctrl_getDirection(void);
 
+void generateIT_IPC(uint32_t EXTI_Line);
+
+
 #endif // MEAS_CONTROL_COMMON_H

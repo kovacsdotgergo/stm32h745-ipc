@@ -1,13 +1,15 @@
-#ifndef MESSAGE_BUFFER_AMP_H
-#define MESSAGE_BUFFER_AMP_H
+#ifndef IPC_MB_COMMON_H
+#define IPC_MB_COMMON_H
 
 #include "FreeRTOS.h"
 #include "message_buffer.h"
+
+#include "stm32h7xx_hal.h"
+
 #include "stdint.h"
+
 #include "meas_control_common.h"
 
-/* Enough for 4 8 byte strings, plus the additional 4 bytes per message
-overhead of message buffers. */
 #define mbaTASK_MESSAGE_BUFFER_SIZE ( 16384 )
 #define mbaCONTROL_MESSAGE_BUFFER_SIZE ( 24 )
 
@@ -17,6 +19,10 @@ overhead of message buffers. */
 #define MB2TO1_INT_EXTI_IRQ EXTI4_IRQn
 #define MB2TO1_INT_EXTI_LINE EXTI_LINE4
 #define MB2TO1_GPIO_PIN GPIO_PIN_4
+
+#define MB1TO2_INT_EXTI_IRQ EXTI0_IRQn
+#define MB1TO2_INT_EXTI_LINE EXTI_LINE0
+#define MB1TO2_GPIO_PIN GPIO_PIN_0
 
 #define MB1TO2_IDX 0
 #define MB2TO1_IDX 1
@@ -33,4 +39,7 @@ extern volatile StaticStreamBuffer_t xStreamBufferStruct[4];
 extern volatile uint8_t ucStorageBuffer_ctrl[2][ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
 extern volatile uint8_t ucStorageBuffer[2][ mbaTASK_MESSAGE_BUFFER_SIZE ];
 
-#endif /* MESSAGE_BUFFER_AMP_H */
+void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
+void interruptHandlerIPC_messageBuffer( void );
+
+#endif /* IPC_MB_COMMON_H */
