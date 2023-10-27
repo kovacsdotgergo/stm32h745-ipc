@@ -11,8 +11,10 @@
 #include <stdio.h>
 #include <string.h>
 /* Own files */
-#include "shared_variables.h"
+#include "ipc_mb_common.h"
 #include "time_meas.h"
+#include "meas_control.h"
+#include "error_handler.h"
 
 #define START_MEAS_BIT 0x01
 
@@ -27,18 +29,6 @@ void core2MeasurementTask( void *pvParameters );
 void app_measureCore2Recieving(void);
 void app_measureCore2Sending(uint32_t dataSize);
 
-/* Interrupt handler when receiving IPC messages with message buffers */
-void interruptHandlerIPC_messageBuffer(void);
-void interruptHandlerIPC_startMeas(void);
-/* Generate interrupt for message buffer functionality */
-void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
-/* Generating an interrupt for Core 1, singaling the end of the 
-    measurement */
-void generateInterruptIPC_endMeasurement(void);
-
-void app_initMessageBufferAMP(void);
 void app_createTasks(void);
-/* Infinite loop in case of error in the main task */
-void app_measurementErrorHandler(void);
 
 #endif /* APP_H */

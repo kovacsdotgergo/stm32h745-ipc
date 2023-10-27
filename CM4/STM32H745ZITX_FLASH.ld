@@ -168,6 +168,7 @@ SECTIONS
   .shared 0x38000000 :
   {
     . = ALIGN(4);
+    KEEP(*(.shared SORT_BY_NAME(.shared.*))) /* Ensuring the same order of shared variables in memory on both cores */
     *(.shared)
   } > RAM_D3
 

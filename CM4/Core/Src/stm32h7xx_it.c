@@ -22,7 +22,8 @@
 #include "stm32h7xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "time_meas.h"
+#include "meas_control_common.h"
+#include "ipc_mb_common.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -177,7 +178,7 @@ void TIM1_UP_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void EXTI0_IRQHandler( void )
 {
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  HAL_GPIO_EXTI_IRQHandler(MB1TO2_GPIO_PIN);
 }
 
 void EXTI3_IRQHandler(void){
