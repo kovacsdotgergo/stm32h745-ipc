@@ -4,6 +4,7 @@
 /* FreeRTOS */
 #include "FreeRTOS.h"
 #include "message_buffer.h"
+#include "semphr.h"
 #include "task.h"
 /* ST */
 #include "main.h" //gpio pin definitions, htim5, hal inc
@@ -19,6 +20,7 @@
 #define START_MEAS_BIT 0x01
 
 extern TaskHandle_t core2TaskHandle;
+extern SemaphoreHandle_t startMeasSemaphore;
 
 /* Callback handling the exti interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);

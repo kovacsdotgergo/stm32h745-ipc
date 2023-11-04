@@ -19,9 +19,7 @@ void generateInterruptIPC_endMeasurement(void) {
 void interruptHandlerIPC_startMeas(void) {
     /* Signaling to task with notification*/
     BaseType_t xHigherPriorityTaskWoken;
-    /* TODO bad solution, message buffer uses notification as well*/
-    (void)xTaskNotifyFromISR(core2TaskHandle, START_MEAS_BIT, eSetBits,
-                        &xHigherPriorityTaskWoken);
+    xSemaphoreGiveFromISR( startMeasSemaphore, &xHigherPriorityTaskWoken );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 
     HAL_EXTI_D2_ClearFlag(START_MEAS_INT_EXTI_LINE);

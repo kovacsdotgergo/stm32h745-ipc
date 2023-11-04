@@ -47,12 +47,6 @@ FLASH (rx)     : ORIGIN = 0x08100000, LENGTH = 1024K
 RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 288K /* before: 288K */
 RAM_D1 (xrw)   : ORIGIN = 0x24000000, LENGTH = 512K
 RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
-/* RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 128
-RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000080, LENGTH = 128
-RAM_D3_Z3 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
-RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000200, LENGTH = 512
-RAM_D3_Z5 (xrw)       : ORIGIN = 0x38000400, LENGTH = 32K
-RAM_D3_Z6 (xrw)       : ORIGIN = 0x38008400, LENGTH = 128 */
 }
 
 /* Define output sections */

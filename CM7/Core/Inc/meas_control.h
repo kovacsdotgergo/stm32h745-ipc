@@ -2,7 +2,7 @@
 #define MEAS_CONTROL_H
 
 #include "meas_control_common.h"
-#include "app.h" // todo: add the handle for the task handle to notify when end meas
+#include "app.h"
 
 /* Setting up the required peripherals for the inter-core interrupt*/
 void ctrl_initInterrupts(void);
