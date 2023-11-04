@@ -1,6 +1,7 @@
 #include "app.h"
 
 TaskHandle_t core2TaskHandle;
+SemaphoreHandle_t startMeasSemaphore = NULL;
 
 /* Override the callback function to handle interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -23,17 +24,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 /* m4 core task waiting for measurement and handling it */
 void core2MeasurementTask( void *pvParameters )
 {
-  uint32_t notifiedValue;
+  startMeasSemaphore = xSemaphoreCreateBinary();
+  
   for( ;; )
   {   
-    /* Wait for signal and direction of the measurement */
-    do
-    {
-      /* Cast because of indefinite block*/
-      (void)xTaskNotifyWait(pdFALSE, 0xffffffffUL, &notifiedValue, 
-                            portMAX_DELAY);
-    /* TODO Message buffer can also unblock unfortunately*/
-    } while (!(notifiedValue & START_MEAS_BIT));
+    /* Wait for start signal and direction of the measurement */
+    (void)xSemaphoreTake( startMeasSemaphore, portMAX_DELAY ); // indefinite block
     
     /* Perform one measurement */
     switch (ctrl_getDirection())
