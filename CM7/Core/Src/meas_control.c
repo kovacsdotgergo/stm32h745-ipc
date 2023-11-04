@@ -14,7 +14,7 @@ void ctrl_initInterrupts(void) {
 void interruptHandlerIPC_endMeas( void ){
     /* Signaling to task with notification*/
     BaseType_t xHigherPriorityTaskWoken;
-    vTaskNotifyGiveFromISR(core1TaskHandle, &xHigherPriorityTaskWoken);
+    xSemaphoreGiveFromISR( endMeasSemaphore, &xHigherPriorityTaskWoken );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 
     HAL_EXTI_D1_ClearFlag(END_MEAS_INT_EXTI_LINE);

@@ -25,7 +25,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void core2MeasurementTask( void *pvParameters )
 {
   startMeasSemaphore = xSemaphoreCreateBinary();
-  
+
   for( ;; )
   {   
     /* Wait for start signal and direction of the measurement */
@@ -57,7 +57,7 @@ void app_measureCore2Recieving(void){
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY );
   time_endTime(); /* global shared variable */
-
+  time_setSharedOffset();
   /* Checking the size and last element of the data */
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(xReceivedBytes != sizeFromMessage || 
@@ -78,6 +78,7 @@ void app_measureCore2Sending(uint32_t dataSize){
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
   vTaskDelay(1/portTICK_PERIOD_MS);
+  time_setSharedOffset();
   /* Start measurement */
   time_startTime();
   xMessageBufferSend(xDataMessageBuffers[MB2TO1_IDX],

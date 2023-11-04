@@ -1,6 +1,7 @@
 #include <app.h>
 
 TaskHandle_t core1TaskHandle;
+SemaphoreHandle_t endMeasSemaphore = NULL;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   switch (GPIO_Pin)
@@ -19,6 +20,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void core1MeasurementTask( void *pvParameters ){
+  ( void ) pvParameters;
+
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
   uint8_t uartInputBuffer, uartOutputBuffer[32];
   uint32_t numMeas, dataSize;
@@ -32,8 +35,7 @@ void core1MeasurementTask( void *pvParameters ){
   uartStates lastState = IDLE;
   bool startMeas;
 
-  /* Remove warning about unused parameters. */
-  ( void ) pvParameters;
+  endMeasSemaphore = xSemaphoreCreateBinary();
   
   for( ;; )
   {
@@ -80,9 +82,11 @@ void core1MeasurementTask( void *pvParameters ){
         break;
       }
       /* Printing measurement result */
-      uint32_t runTime = time_getRuntime();
+      uint32_t localOffset = time_measureOffset();
+      uint32_t m4Offset = time_getSharedOffset();
+      uint32_t runTime = time_getRuntime(localOffset);
       memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
-      sprintf((char*)uartOutputBuffer, "%lu\r\n", runTime);
+      sprintf((char*)uartOutputBuffer, "%lu %lu %lu\r\n", runTime, localOffset, m4Offset);
       HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen((char*)uartOutputBuffer), HAL_MAX_DELAY);
     }
   }
@@ -106,7 +110,7 @@ void app_measureCore1Sending(uint32_t dataSize){
   
   ++nextValue;
   /* Waiting for the signal from the other core */
-  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+  xSemaphoreTake(endMeasSemaphore, portMAX_DELAY);
 }
 
 void app_measureCore1Recieving(void){

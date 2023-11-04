@@ -50,13 +50,6 @@ MEMORY
   RAM_D2 (xrw)   : ORIGIN = 0x30000000, LENGTH = 288K
   RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
   ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
-  /* Sections used for shared variables */
-  /* RAM_D3_Z1 (xrw)       : ORIGIN = 0x38000000, LENGTH = 128
-  RAM_D3_Z2 (xrw)       : ORIGIN = 0x38000080, LENGTH = 128
-  RAM_D3_Z3 (xrw)       : ORIGIN = 0x38000100, LENGTH = 256
-  RAM_D3_Z4 (xrw)       : ORIGIN = 0x38000200, LENGTH = 512
-  RAM_D3_Z5 (xrw)       : ORIGIN = 0x38000400, LENGTH = 32K
-  RAM_D3_Z6 (xrw)       : ORIGIN = 0x38008400, LENGTH = 128 */
 }
 
 /* Sections */
