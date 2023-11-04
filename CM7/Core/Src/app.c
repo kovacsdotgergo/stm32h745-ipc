@@ -6,7 +6,7 @@ SemaphoreHandle_t endMeasSemaphore = NULL;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   switch (GPIO_Pin)
   {
-  case END_MEAS_GPIO_PIN: // todo: make a define and hide it somehow
+  case END_MEAS_GPIO_PIN:
     interruptHandlerIPC_endMeas();
     break;
   case MB2TO1_GPIO_PIN:
@@ -83,10 +83,11 @@ void core1MeasurementTask( void *pvParameters ){
       }
       /* Printing measurement result */
       uint32_t localOffset = time_measureOffset();
-      uint32_t m4Offset = time_getSharedOffset();
+      // Uncomment to observe the offset on the other core
+      // uint32_t m4Offset = time_getSharedOffset();
       uint32_t runTime = time_getRuntime(localOffset);
       memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
-      sprintf((char*)uartOutputBuffer, "%lu %lu %lu\r\n", runTime, localOffset, m4Offset);
+      sprintf((char*)uartOutputBuffer, "%lu\r\n", runTime);
       HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen((char*)uartOutputBuffer), HAL_MAX_DELAY);
     }
   }

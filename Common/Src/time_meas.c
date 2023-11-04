@@ -35,6 +35,5 @@ uint32_t time_measureOffset(void) {
 }
 
 uint32_t time_getRuntime(uint32_t localOffset) {
-    //todo: measure runtime offset, and take it as an intut param
     return shEndTime - shStartTime - (localOffset + shOffset)/2; 
 }

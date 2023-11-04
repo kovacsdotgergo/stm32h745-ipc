@@ -1,5 +1,5 @@
 test/
-.vscode
+*.vscode
 
 # Prerequisites
 *.d
@@ -57,3 +57,4 @@ dkms.conf
 # Eclipse
 .metadata
 .settings
+*.list
