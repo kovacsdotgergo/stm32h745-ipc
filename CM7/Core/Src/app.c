@@ -23,9 +23,19 @@ void core1MeasurementTask( void *pvParameters ){
   ( void ) pvParameters;
 
   const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
-  uint8_t uartInputBuffer, uartOutputBuffer[32];
+  uint8_t uartOutputBuffer[32];
+
   uint32_t numMeas, dataSize;
   uart_measDirection direction;
+
+  uart_measParams uartParams = {
+    .numMeas = 0, // TODO meaningful init
+    .dataSize = 0,
+    .direction = SEND,
+    .clk_div1 = 1,
+    .clk_div2 = 1,
+    .clk_div3 = 1,
+  };
   uartStateMachine stateMachine = {
     .state = IDLE,
     .stringNumMeas = {0},
@@ -35,30 +45,60 @@ void core1MeasurementTask( void *pvParameters ){
   uartStates lastState = IDLE;
   bool startMeas;
 
-  endMeasSemaphore = xSemaphoreCreateBinary();
+  endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function
   
   for( ;; )
   {
-    /* Waiting for a start signal */
-    HAL_StatusTypeDef receiveSuccess;
+    int8_t uartControlStatus;
     do {
-      receiveSuccess = HAL_UART_Receive(&huart3, &uartInputBuffer,
-          sizeof(uartInputBuffer), 0);
-      
-      if(receiveSuccess == HAL_OK){
-        /* Step if new char */
-        startMeas = uart_stateMachineStep(uartInputBuffer, &stateMachine,
-            (uint32_t*)&numMeas, (uint32_t*)&dataSize, &direction); /* Cast removing the volatile, the variable doesn't change during execution*/
-        /* Echoing */
-        HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
-        if(lastState != stateMachine.state){
-          HAL_UART_Transmit(&huart3, (uint8_t*)"\r\n", 2, 100);
+      int8_t bufferStatus;
+      uart_LineBuffer lineBuffer;
+      do {
+        // Blocking wait for UART, processing by single characters
+        uint8_t uartInput;
+        HAL_StatusTypeDef receiveSuccess;
+        receiveSuccess = HAL_UART_Receive(&huart3, &uartInput,
+            sizeof(uartInput), HAL_MAX_DELAY);
+        if (receiveSuccess != HAL_OK) {
+          // todo handle error in status
         }
-        lastState = stateMachine.state;
-      }
+        
+        bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer);
 
-      vTaskDelay(uartDelay); // vtaskdelay_until could be used
-    } while(receiveSuccess != HAL_OK || !startMeas);
+      } while (bufferStatus != BUFFER_OVERFLOW && bufferStatus != BUFFER_DONE);
+
+      if (bufferStatus == BUFFER_OVERFLOW) {
+        // todo print error message
+      }
+      else { // BUFFER_DONE
+        uartControlStatus = uart_parseBuffer(lineBuffer, &uartParams);
+        // todo handle error in status
+      }
+    } while (uartControlStatus != START_MEAS)
+
+    app_prepareMeas(uartParams);
+
+    // /* Waiting for a start signal, not using a seperate uart handling task
+    //     to only have one running task on each core */
+    // HAL_StatusTypeDef receiveSuccess;
+    // do {
+    //   receiveSuccess = HAL_UART_Receive(&huart3, &uartInputBuffer,
+    //       sizeof(uartInputBuffer), 0);
+      
+    //   if(receiveSuccess == HAL_OK){
+    //     /* Step if new char */
+    //     startMeas = uart_stateMachineStep(uartInputBuffer, &stateMachine,
+    //         (uint32_t*)&numMeas, (uint32_t*)&dataSize, &direction); /* Cast removing the volatile, the variable doesn't change during execution*/
+    //     /* Echoing */
+    //     HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
+    //     if(lastState != stateMachine.state){
+    //       HAL_UART_Transmit(&huart3, (uint8_t*)"\r\n", 2, 100);
+    //     }
+    //     lastState = stateMachine.state;
+    //   }
+
+    //   vTaskDelay(uartDelay); // vtaskdelay_until could be used
+    // } while(receiveSuccess != HAL_OK || !startMeas);
     /* Saturating the data size */
     if(dataSize > MAX_DATA_SIZE){
       dataSize = MAX_DATA_SIZE;
