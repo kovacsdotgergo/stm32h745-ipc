@@ -99,8 +99,9 @@ static uart_parseStatus getArgTokens(const char* args, size_t len,
         if (toks[i] == NULL) {
             return PARSE_ARG_NUM_ERR;
         }
+        size_t skippedLen = toks[i] - args;
         args += tokLens[i];
-        len -= tokLens[i];
+        len -= skippedLen + tokLens[i];
     }
 
     // check if there are tokens left
@@ -243,8 +244,9 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
     }
 
     // selecting the command
-    const char* const argsBeg = lineBuffer->buffer + cmdlen;
-    size_t argsLen = lineBuffer->len - cmdlen;
+    const char* const argsBeg = cmdtok + cmdlen;
+    size_t skippedLen = cmdtok - lineBuffer->buffer;
+    size_t argsLen = lineBuffer->len - skippedLen - cmdlen;
     const uart_Command cmds[] = COMMANDS;
     for (size_t i = 0; i < sizeof(cmds) / sizeof(cmds[0]); ++i) {
         // executing the matching command with the args
