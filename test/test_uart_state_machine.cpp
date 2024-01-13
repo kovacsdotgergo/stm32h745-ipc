@@ -127,8 +127,8 @@ public:
         .dataSize = 2U,
         .direction = SEND,
         .clk_div1 = 4U,
-        .clk_div2 = 8,
-        .clk_div3 = 16,
+        .clk_div2 = 8U,
+        .clk_div3 = 32U,
         .startMeas = false,
     };
     const uart_measParams defaultMeasParams{measParams};
@@ -144,14 +144,19 @@ public:
 
 TEST_F(uartLineParserCorrectCmdsTest, Clk) {
     const char cmd[] = " \t clk \t\t 00 \t 150\t\t 929487320 \t";
+    uint32_t testDivs[] = {0U, 150U, 929487320U};
+    uint32_t divLimits[] = DIV_LIMITS;
     setupCmd(cmd, sizeof(cmd) - 1);
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams);
     
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(0U, measParams.clk_div1);
-    EXPECT_EQ(150U, measParams.clk_div2);
-    EXPECT_EQ(929487320U, measParams.clk_div3);
+    EXPECT_EQ(testDivs[0] < divLimits[0] ? testDivs[0] : divLimits[0],
+              measParams.clk_div1);
+    EXPECT_EQ(testDivs[1] < divLimits[1] ? testDivs[1] : divLimits[1],
+              measParams.clk_div2);
+    EXPECT_EQ(testDivs[2] < divLimits[2] ? testDivs[2] : divLimits[2],
+              measParams.clk_div3);
 
     EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
@@ -169,37 +174,67 @@ TEST_F(uartLineParserCorrectCmdsTest, Direction) {
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(RECEIVE, measParams.direction);
 
+    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
     EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
     EXPECT_EQ(defaultMeasParams.clk_div3, measParams.clk_div3);
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
-    EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.startMeas, measParams.startMeas);
 }
 
-TEST_F(uartLineParserCorrectCmdsTest, ValidArgStart) {
+TEST_F(uartLineParserCorrectCmdsTest, Start) {
     const char cmd[] = "start";
     setupCmd(cmd, sizeof(cmd) - 1);
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams);
     
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(RECEIVE, measParams.direction);
+    EXPECT_EQ(true, measParams.startMeas);
 
+    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
+    EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
     EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
     EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
     EXPECT_EQ(defaultMeasParams.clk_div3, measParams.clk_div3);
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+}
+
+TEST_F(uartLineParserCorrectCmdsTest, Repeat) {
+    const char cmd[] = " repeat 2980";
+    uint32_t testRep = 2980U;
+    setupCmd(cmd, sizeof(cmd) - 1);
+
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+
+    EXPECT_EQ(PARSE_OK, ret);
+    EXPECT_EQ(testRep < REPETITION_LIMIT ? testRep : REPETITION_LIMIT,
+              measParams.numMeas);
+
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
+    EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
+    EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
+    EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
+    EXPECT_EQ(defaultMeasParams.clk_div3, measParams.clk_div3);
     EXPECT_EQ(defaultMeasParams.startMeas, measParams.startMeas);
 }
 
-TEST_F(uartLineParserCorrectCmdsTest, ValidArgRepeat) {
-    const char cmd[] = " repeat ";
-}
+TEST_F(uartLineParserCorrectCmdsTest, Datasize) {
+        const char cmd[] = "datasize \t 389";
+    uint32_t testSize = 389U;
+    setupCmd(cmd, sizeof(cmd) - 1);
 
-TEST_F(uartLineParserCorrectCmdsTest, ValidArgDatasize) {
-    // cmd at the beginning
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+
+    EXPECT_EQ(PARSE_OK, ret);
+    EXPECT_EQ(testSize < DATASIZE_LIMIT ? testSize : DATASIZE_LIMIT,
+              measParams.dataSize);
+
+    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
+    EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
+    EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
+    EXPECT_EQ(defaultMeasParams.clk_div3, measParams.clk_div3);
+    EXPECT_EQ(defaultMeasParams.startMeas, measParams.startMeas);
 }
 
 // strntouTest ============================================================

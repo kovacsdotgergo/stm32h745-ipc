@@ -100,7 +100,7 @@ static uart_parseStatus getArgTokens(const char* args, size_t len,
             return PARSE_ARG_NUM_ERR;
         }
         size_t skippedLen = toks[i] - args;
-        args += tokLens[i];
+        args += skippedLen + tokLens[i];
         len -= skippedLen + tokLens[i];
     }
 

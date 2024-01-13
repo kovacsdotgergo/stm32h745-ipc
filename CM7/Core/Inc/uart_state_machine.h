@@ -13,7 +13,7 @@
 
 #define LINE_BUFFER_LEN 64
 #define CMD_DELIMITERS " \t"
-#define DIV_LIMITS {1, 1, 1} // todo div limits
+#define DIV_LIMITS {16, 16, 16} // todo div limits
 #define REPETITION_LIMIT 2048
 #define DATASIZE_LIMIT 2048
 #define COMMANDS {{.cmd = "clk", .parseArgFun = uart_parseClkCmd,}, \
