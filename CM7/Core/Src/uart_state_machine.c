@@ -1,6 +1,6 @@
 #include "uart_state_machine.h"
 
-uart_BufferStatus uart_addCharToBuffer(char uartInput, uart_LineBuffer* const lineBuffer) {
+uart_BufferStatus uart_addCharToBuffer(char uartInput, uart_LineBuffer* lineBuffer) {
     assert(lineBuffer != NULL);
     // todo could add backspace support
     if (uartInput == '\r') {
@@ -23,7 +23,7 @@ static uart_parseStatus strntou(const char* str, size_t len, uint32_t* res) {
     assert(res != NULL);
     uint32_t n = 0;
     while (len--) {
-        if (!isdigit(*str)) {
+        if (!isdigit((unsigned char)*str)) {
             return PARSE_ARG_VAL_ERR;
         }
         n = 10 * n + *(str++) - '0'; 

@@ -19,27 +19,27 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
   7 ._user_heap_stack 00000600  1000cb58  08106e4c  0002cb58  2**0
                   ALLOC
-  8 .shared       000080e4  10010000  10010000  00030000  2**2
+  8 .shared       000080e4  38000000  38000000  00030000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
   9 .ARM.attributes 00000030  00000000  00000000  000380e4  2**0
                   CONTENTS, READONLY
- 10 .debug_info   0001e29b  00000000  00000000  00038114  2**0
+ 10 .debug_info   0002027c  00000000  00000000  00038114  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 11 .debug_abbrev 0000401e  00000000  00000000  000563af  2**0
+ 11 .debug_abbrev 0000403a  00000000  00000000  00058390  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 12 .debug_aranges 00001718  00000000  00000000  0005a3d0  2**3
+ 12 .debug_aranges 00001730  00000000  00000000  0005c3d0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_ranges 00001550  00000000  00000000  0005bae8  2**3
+ 13 .debug_ranges 00001568  00000000  00000000  0005db00  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_macro  0003d4e5  00000000  00000000  0005d038  2**0
+ 14 .debug_macro  0003e239  00000000  00000000  0005f068  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_line   0001c404  00000000  00000000  0009a51d  2**0
+ 15 .debug_line   0001c858  00000000  00000000  0009d2a1  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_str    0018e228  00000000  00000000  000b6921  2**0
+ 16 .debug_str    0019384d  00000000  00000000  000b9af9  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .comment      00000050  00000000  00000000  00244b49  2**0
+ 17 .comment      00000050  00000000  00000000  0024d346  2**0
                   CONTENTS, READONLY
- 18 .debug_frame  00006710  00000000  00000000  00244b9c  2**2
+ 18 .debug_frame  0000677c  00000000  00000000  0024d398  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -185,7 +185,7 @@ void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
  81003be:	3710      	adds	r7, #16
  81003c0:	46bd      	mov	sp, r7
  81003c2:	bd80      	pop	{r7, pc}
- 81003c4:	10010000 	.word	0x10010000
+ 81003c4:	38000000 	.word	0x38000000
 
 081003c8 <interruptHandlerIPC_messageBuffer>:
 
@@ -235,7 +235,7 @@ void interruptHandlerIPC_messageBuffer( void ) {
  810040a:	3708      	adds	r7, #8
  810040c:	46bd      	mov	sp, r7
  810040e:	bd80      	pop	{r7, pc}
- 8100410:	10010000 	.word	0x10010000
+ 8100410:	38000000 	.word	0x38000000
  8100414:	e000ed04 	.word	0xe000ed04
 
 08100418 <ctrl_getDataSize>:
@@ -256,7 +256,7 @@ uint32_t ctrl_getDataSize(void) {
  8100424:	f85d 7b04 	ldr.w	r7, [sp], #4
  8100428:	4770      	bx	lr
  810042a:	bf00      	nop
- 810042c:	100180d0 	.word	0x100180d0
+ 810042c:	380080d0 	.word	0x380080d0
 
 08100430 <ctrl_getDirection>:
 
@@ -276,7 +276,7 @@ measDirection ctrl_getDirection(void) {
  810043c:	46bd      	mov	sp, r7
  810043e:	f85d 7b04 	ldr.w	r7, [sp], #4
  8100442:	4770      	bx	lr
- 8100444:	100180d4 	.word	0x100180d4
+ 8100444:	380080d4 	.word	0x380080d4
 
 08100448 <generateIT_IPC>:
 
@@ -375,7 +375,7 @@ void time_startTime(void) {
  81004c0:	4770      	bx	lr
  81004c2:	bf00      	nop
  81004c4:	10000008 	.word	0x10000008
- 81004c8:	100180d8 	.word	0x100180d8
+ 81004c8:	380080d8 	.word	0x380080d8
 
 081004cc <time_endTime>:
 
@@ -397,7 +397,7 @@ void time_endTime(void) {
  81004e4:	4770      	bx	lr
  81004e6:	bf00      	nop
  81004e8:	10000008 	.word	0x10000008
- 81004ec:	100180dc 	.word	0x100180dc
+ 81004ec:	380080dc 	.word	0x380080dc
 
 081004f0 <time_setSharedOffset>:
 
@@ -413,7 +413,7 @@ void time_setSharedOffset(void) {
  81004fe:	bf00      	nop
  8100500:	bd80      	pop	{r7, pc}
  8100502:	bf00      	nop
- 8100504:	100180e0 	.word	0x100180e0
+ 8100504:	380080e0 	.word	0x380080e0
 
 08100508 <time_measureOffset>:
 
@@ -650,7 +650,7 @@ void app_measureCore2Recieving(void){
  8100646:	46bd      	mov	sp, r7
  8100648:	bd80      	pop	{r7, pc}
  810064a:	bf00      	nop
- 810064c:	10010008 	.word	0x10010008
+ 810064c:	38000008 	.word	0x38000008
  8100650:	100000a0 	.word	0x100000a0
  8100654:	08106bd4 	.word	0x08106bd4
  8100658:	10004098 	.word	0x10004098
@@ -723,7 +723,7 @@ void app_measureCore2Sending(uint32_t dataSize){
  81006c0:	10004099 	.word	0x10004099
  81006c4:	1000409c 	.word	0x1000409c
  81006c8:	08106bd4 	.word	0x08106bd4
- 81006cc:	10010008 	.word	0x10010008
+ 81006cc:	38000008 	.word	0x38000008
 
 081006d0 <app_createTasks>:
 
@@ -870,8 +870,8 @@ void initIPC_MessageBuffers(void) {
  810079e:	bf00      	nop
  81007a0:	10008094 	.word	0x10008094
  81007a4:	40000c00 	.word	0x40000c00
- 81007a8:	10010000 	.word	0x10010000
- 81007ac:	10010008 	.word	0x10010008
+ 81007a8:	38000000 	.word	0x38000000
+ 81007ac:	38000008 	.word	0x38000008
 
 081007b0 <main>:
 /**
@@ -1075,7 +1075,6 @@ void interruptHandlerIPC_startMeas(void) {
  81008a8:	4611      	mov	r1, r2
  81008aa:	4618      	mov	r0, r3
  81008ac:	f002 fa53 	bl	8102d56 <xQueueGiveFromISR>
-    /* TODO bad solution, message buffer uses notification as well*/
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
  81008b0:	687b      	ldr	r3, [r7, #4]
  81008b2:	2b00      	cmp	r3, #0

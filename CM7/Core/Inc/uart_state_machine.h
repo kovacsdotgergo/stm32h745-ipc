@@ -9,18 +9,20 @@
 #include <assert.h>
 
 #define NUM_MEAS_STRING_LEN 16
-#define MEAS_DATA_SIZE_STRING_LEN 16
+#define MEAS_DATA_SIZE_STRING_LEN 16 // todo remove if not needed, cleanup this file
 
 #define LINE_BUFFER_LEN 64
 #define CMD_DELIMITERS " \t"
 #define DIV_LIMITS {16, 16, 16} // todo div limits
-#define REPETITION_LIMIT 2048
-#define DATASIZE_LIMIT 2048
+#define REPETITION_LIMIT 2048 // todo limit
+#define DATASIZE_LIMIT 16376
 #define COMMANDS {{.cmd = "clk", .parseArgFun = uart_parseClkCmd,}, \
                   {.cmd = "direction", .parseArgFun = uart_parseDirectionCmd,}, \
                   {.cmd = "start", .parseArgFun = uart_parseStartCmd,}, \
                   {.cmd = "repeat", .parseArgFun = uart_parseRepeatCmd,}, \
-                  {.cmd = "datasize", .parseArgFun = uart_parseDatasizeCmd,},} // todo
+                  {.cmd = "datasize", .parseArgFun = uart_parseDatasizeCmd,},} 
+                  // todo add reset
+                  // todo add help
 
 typedef enum{
     SEND,
@@ -37,6 +39,8 @@ typedef struct {
     bool startMeas;
     // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target
+    // todo help
+    // todo getparams to print
 } uart_measParams;
 
 typedef struct {
@@ -71,7 +75,7 @@ typedef struct {
  * @returns status of the buffer
 */
 uart_BufferStatus uart_addCharToBuffer(char uartInput, 
-                                       uart_LineBuffer* const lineBuffer);
+                                       uart_LineBuffer* lineBuffer);
 
 
 /**
@@ -81,8 +85,8 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
  * @param[in] uartParams the params to modify
  * @returns false if the parsing failed
 */
-uart_parseStatus uart_parseBuffer(const uart_LineBuffer* const lineBuffer,
-                                  uart_measParams* const uartParams);
+uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
+                                  uart_measParams* uartParams);
 
 /**
  * @brief Parses the arguments of the 'datasize' command and modifies the

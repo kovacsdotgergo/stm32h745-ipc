@@ -10,6 +10,7 @@
 #include "main.h" /* gpio pin definitions, hal include, htim5 definition, huart3 */
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 /* Own files*/
 #include "ipc_mb_common.h"
 #include "time_meas.h"

@@ -19,100 +19,113 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   }
 }
 
+// todo seperate files for the measurement task ==========================
+// todo forward declare the static functions and define them under the meas task
+
+static void printUartMeasTask(const char* msg) {
+  // todo
+  // uart transmit
+  // - with max delay waits in while loop
+  // - only returns then with ok
+}
+
+static char scanUartMeasTask() {
+  // todo
+  // same as print
+}
+
+/** 
+ * @brief Processes the UART control messages and returns when the
+ *  measurement can be started
+ * @param[inout] uartParams parameters of the measurement to be performed
+*/
+static void processUartControl(uart_measParams* uartParams) {
+  uart_parseStatus uartControlStatus;
+  do {
+    uart_BufferStatus bufferStatus;
+    uart_LineBuffer lineBuffer;
+    do {
+      // Blocking wait for UART, processing by single characters
+      uint8_t uartInput;
+      HAL_StatusTypeDef receiveSuccess;
+      receiveSuccess = HAL_UART_Receive(&huart3, &uartInput,
+          sizeof(uartInput), HAL_MAX_DELAY);
+      if (receiveSuccess != HAL_OK) {
+        // todo handle error in status
+        assert(false);
+      }
+      
+      bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer);
+      if (bufferStatus == BUFFER_OVERFLOW) {
+        // todo print overflow message
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Input buffer overflow", 22, HAL_MAX_DELAY);
+        lineBuffer.len = 0;
+      }
+    } while (bufferStatus != BUFFER_DONE);
+
+      uartControlStatus = uart_parseBuffer(&lineBuffer, uartParams);
+      switch (uartControlStatus)
+      {
+      case PARSE_COMMAND_ERR:
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Command parsing error", 22, HAL_MAX_DELAY);
+        break;
+      case PARSE_ARG_NUM_ERR:
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument number error while parsing", 36, HAL_MAX_DELAY);
+        break;
+      case PARSE_ARG_VAL_ERR:
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument value error while parsing", 35, HAL_MAX_DELAY);
+        break;
+      case PARSE_OK:
+        break;
+      default:
+        assert(false);
+        break;
+      }
+
+  } while (!uartParams->startMeas);
+}
+
+/**
+ * @brief Shares the measurement params with the other measurement tasks
+ *  and sets up the required parameters e.g. clk frequency
+*/
+static void prepareMeasParams(uart_measParams params) {
+  // set the shared variables
+  ctrl_setDataSize(params.dataSize); /* Sharing the meas parameters */
+  ctrl_setDirection((params.direction == SEND) ? M7_SEND : M7_RECIEVE);
+  // setup what is needed e.g. clk, memory buffer selection
+}
+
 void core1MeasurementTask( void *pvParameters ){
   ( void ) pvParameters;
 
-  const TickType_t uartDelay = pdMS_TO_TICKS( 100 );
-  uint8_t uartOutputBuffer[32];
-
-  uint32_t numMeas, dataSize;
-  uart_measDirection direction;
-
   uart_measParams uartParams = {
-    .numMeas = 0, // TODO meaningful init
+    .numMeas = 0,
     .dataSize = 0,
     .direction = SEND,
     .clk_div1 = 1,
     .clk_div2 = 1,
     .clk_div3 = 1,
+    .startMeas = false,
   };
-  uartStateMachine stateMachine = {
-    .state = IDLE,
-    .stringNumMeas = {0},
-    .stringMeasData = {0},
-    .stringIndex = 0,
-  };
-  uartStates lastState = IDLE;
-  bool startMeas;
 
+  uint8_t uartOutputBuffer[32];
   endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function
   
   for( ;; )
   {
-    int8_t uartControlStatus;
-    do {
-      int8_t bufferStatus;
-      uart_LineBuffer lineBuffer;
-      do {
-        // Blocking wait for UART, processing by single characters
-        uint8_t uartInput;
-        HAL_StatusTypeDef receiveSuccess;
-        receiveSuccess = HAL_UART_Receive(&huart3, &uartInput,
-            sizeof(uartInput), HAL_MAX_DELAY);
-        if (receiveSuccess != HAL_OK) {
-          // todo handle error in status
-        }
-        
-        bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer);
+    processUartControl(&uartParams);
 
-      } while (bufferStatus != BUFFER_OVERFLOW && bufferStatus != BUFFER_DONE);
+    prepareMeasParams(uartParams); // share with the other core
 
-      if (bufferStatus == BUFFER_OVERFLOW) {
-        // todo print error message
-      }
-      else { // BUFFER_DONE
-        uartControlStatus = uart_parseBuffer(lineBuffer, &uartParams);
-        // todo handle error in status
-      }
-    } while (uartControlStatus != START_MEAS)
-
-    app_prepareMeas(uartParams);
-
-    // /* Waiting for a start signal, not using a seperate uart handling task
-    //     to only have one running task on each core */
-    // HAL_StatusTypeDef receiveSuccess;
-    // do {
-    //   receiveSuccess = HAL_UART_Receive(&huart3, &uartInputBuffer,
-    //       sizeof(uartInputBuffer), 0);
-      
-    //   if(receiveSuccess == HAL_OK){
-    //     /* Step if new char */
-    //     startMeas = uart_stateMachineStep(uartInputBuffer, &stateMachine,
-    //         (uint32_t*)&numMeas, (uint32_t*)&dataSize, &direction); /* Cast removing the volatile, the variable doesn't change during execution*/
-    //     /* Echoing */
-    //     HAL_UART_Transmit(&huart3, &uartInputBuffer, sizeof(uartInputBuffer), 0);
-    //     if(lastState != stateMachine.state){
-    //       HAL_UART_Transmit(&huart3, (uint8_t*)"\r\n", 2, 100);
-    //     }
-    //     lastState = stateMachine.state;
-    //   }
-
-    //   vTaskDelay(uartDelay); // vtaskdelay_until could be used
-    // } while(receiveSuccess != HAL_OK || !startMeas);
-    /* Saturating the data size */
-    if(dataSize > MAX_DATA_SIZE){
-      dataSize = MAX_DATA_SIZE;
-    }
-    ctrl_setDataSize(dataSize); /* Sharing the meas parameters */
-    ctrl_setDirection((direction == SEND) ? M7_SEND : M7_RECIEVE);
-    for(uint32_t i = 0; i < numMeas; ++i){
+    for(uint32_t i = 0; i < uartParams.numMeas; ++i){
       /* Signaling to the other core*/
-      generateInterruptIPC_startMeas();
+      generateInterruptIPC_startMeas(); // todo signalPartner func
       /* Waiting for message or sending message */
-      switch (direction)
+      switch (uartParams.direction)
       {
       case M7_SEND: /* M7 sends the message */
-        app_measureCore1Sending(dataSize);
+        app_measureCore1Sending(uartParams.dataSize);
         break;
       case M7_RECIEVE:
         app_measureCore1Recieving();
@@ -175,6 +188,7 @@ void app_measureCore1Recieving(void){
   memset(recieveBuffer, 0x00, recievedBytes);
   ++nextValue;
 }
+// end of measurement task ===============================================
 
 void app_createTasks(void){
   // creating the tasks for the M7 core
