@@ -2,9 +2,12 @@
 
 uart_BufferStatus uart_addCharToBuffer(char uartInput, uart_LineBuffer* lineBuffer) {
     assert(lineBuffer != NULL);
-    // todo could add backspace support
-    if (uartInput == '\r') {
+    if (uartInput == '\r') { // line end sequence
         return BUFFER_DONE;
+    }
+    if (uartInput == '\b' && 0 < lineBuffer->len) { // deletion on backspace
+        --lineBuffer->len;
+        return BUFFER_OK;
     }
     if (LINE_BUFFER_LEN <= lineBuffer->len) {
         return BUFFER_OVERFLOW;
@@ -111,6 +114,30 @@ static uart_parseStatus getArgTokens(const char* args, size_t len,
     }
 
     return PARSE_OK;
+}
+
+uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
+                                  uart_measParams* uartParams){
+    size_t cmdlen;
+    const char* const cmdtok = strntok(lineBuffer->buffer, lineBuffer->len,
+                                       &cmdlen, CMD_DELIMITERS);
+    if (cmdtok == NULL) {
+        return PARSE_COMMAND_ERR;
+    }
+
+    // selecting the command
+    const char* const argsBeg = cmdtok + cmdlen;
+    size_t skippedLen = cmdtok - lineBuffer->buffer;
+    size_t argsLen = lineBuffer->len - skippedLen - cmdlen;
+    const uart_Command cmds[] = COMMANDS;
+    for (size_t i = 0; i < sizeof(cmds) / sizeof(cmds[0]); ++i) {
+        // executing the matching command with the args
+        if (strncmp(cmdtok, cmds[i].cmd, cmdlen) == 0) {
+            return cmds[i].parseArgFun(argsBeg, argsLen, uartParams);
+        }
+    }
+    // no command matches
+    return PARSE_COMMAND_ERR;
 }
 
 uart_parseStatus uart_parseClkCmd(const char* args, size_t len,
@@ -234,26 +261,29 @@ uart_parseStatus uart_parseDatasizeCmd(const char* args, size_t len,
     return PARSE_OK;
 }
 
-uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
-                                  uart_measParams* uartParams){
-    size_t cmdlen;
-    const char* const cmdtok = strntok(lineBuffer->buffer, lineBuffer->len,
-                                       &cmdlen, CMD_DELIMITERS);
-    if (cmdtok == NULL) {
-        return PARSE_COMMAND_ERR;
+//TODO continue, add message buffers and write into it
+uart_parseStatus uart_parseHelpCmd(const char* args, size_t len,
+                                      uart_measParams* uartParams) {
+    // check if there are arguments, zero needed
+    uart_parseStatus status = getArgTokens(args, len, 0, NULL, NULL);
+    if (status != PARSE_OK) {
+        return status;
     }
 
-    // selecting the command
-    const char* const argsBeg = cmdtok + cmdlen;
-    size_t skippedLen = cmdtok - lineBuffer->buffer;
-    size_t argsLen = lineBuffer->len - skippedLen - cmdlen;
-    const uart_Command cmds[] = COMMANDS;
-    for (size_t i = 0; i < sizeof(cmds) / sizeof(cmds[0]); ++i) {
-        // executing the matching command with the args
-        if (strncmp(cmdtok, cmds[i].cmd, cmdlen) == 0) {
-            return cmds[i].parseArgFun(argsBeg, argsLen, uartParams);
-        }
+    // signal the request for help string
+    uartParams->printHelp = true;
+    return PARSE_OK;
+}
+
+uart_parseStatus uart_parseHelpCmd(const char* args, size_t len,
+                                      uart_measParams* uartParams) {
+    // check if there are arguments, zero needed
+    uart_parseStatus status = getArgTokens(args, len, 0, NULL, NULL);
+    if (status != PARSE_OK) {
+        return status;
     }
-    // no command matches
-    return PARSE_COMMAND_ERR;
+
+    // signal the request for help string
+    uartParams->printHelp = true;
+    return PARSE_OK;
 }

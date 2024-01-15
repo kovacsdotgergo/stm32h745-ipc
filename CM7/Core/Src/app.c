@@ -34,16 +34,33 @@ static char scanUartMeasTask() {
   // same as print
 }
 
+
+/**
+ * @brief Echos the input characters, currently blocking
+*/
+void echoInput(char input) {
+  if (input == '\r') {
+    HAL_UART_Transmit(&huart3, (unsigned char*)"\r\n", 2, HAL_MAX_DELAY);
+  }
+  else {
+    HAL_UART_Transmit(&huart3, (unsigned char*)&input, 1, HAL_MAX_DELAY);
+  }
+}
+
 /** 
  * @brief Processes the UART control messages and returns when the
  *  measurement can be started
  * @param[inout] uartParams parameters of the measurement to be performed
 */
 static void processUartControl(uart_measParams* uartParams) {
+  uartParams->startMeas = false; // to wait for start
+  uartParams->printHelp = false;
   uart_parseStatus uartControlStatus;
   do {
     uart_BufferStatus bufferStatus;
     uart_LineBuffer lineBuffer;
+
+    HAL_UART_Transmit(&huart3, (unsigned char*)uart_getPrompt(), PROMPT_STR_LEN, HAL_MAX_DELAY);
     do {
       // Blocking wait for UART, processing by single characters
       uint8_t uartInput;
@@ -56,30 +73,37 @@ static void processUartControl(uart_measParams* uartParams) {
       }
       
       bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer);
+      echoInput(uartInput);
       if (bufferStatus == BUFFER_OVERFLOW) {
         // todo print overflow message
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Input buffer overflow", 22, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Input buffer overflow\r\n", 24, HAL_MAX_DELAY);
         lineBuffer.len = 0;
       }
     } while (bufferStatus != BUFFER_DONE);
 
       uartControlStatus = uart_parseBuffer(&lineBuffer, uartParams);
+      lineBuffer.len = 0;
       switch (uartControlStatus)
       {
       case PARSE_COMMAND_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Command parsing error", 22, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Command parsing error\r\n", 24, HAL_MAX_DELAY);
         break;
       case PARSE_ARG_NUM_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument number error while parsing", 36, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument number error while parsing\r\n", 38, HAL_MAX_DELAY);
         break;
       case PARSE_ARG_VAL_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument value error while parsing", 35, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument value error while parsing\r\n", 37, HAL_MAX_DELAY);
         break;
       case PARSE_OK:
         break;
       default:
         assert(false);
         break;
+      }
+
+      if (uartParams->printHelp) { // todo the commands return messages, infos, warnings
+        HAL_UART_Transmit(&huart3, (unsigned char*)uart_getHelpStr(), HELP_STR_LEN, HAL_MAX_DELAY);
+        uartParams->printHelp = false;
       }
 
   } while (!uartParams->startMeas);
@@ -107,11 +131,14 @@ void core1MeasurementTask( void *pvParameters ){
     .clk_div2 = 1,
     .clk_div3 = 1,
     .startMeas = false,
+    .printHelp = false,
   };
 
   uint8_t uartOutputBuffer[32];
   endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function
   
+  HAL_UART_Transmit(&huart3, (unsigned char*)uart_getInitStr(), INIT_STR_LEN, HAL_MAX_DELAY);
+
   for( ;; )
   {
     processUartControl(&uartParams);

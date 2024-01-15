@@ -20,9 +20,34 @@
                   {.cmd = "direction", .parseArgFun = uart_parseDirectionCmd,}, \
                   {.cmd = "start", .parseArgFun = uart_parseStartCmd,}, \
                   {.cmd = "repeat", .parseArgFun = uart_parseRepeatCmd,}, \
-                  {.cmd = "datasize", .parseArgFun = uart_parseDatasizeCmd,},} 
+                  {.cmd = "datasize", .parseArgFun = uart_parseDatasizeCmd,}, \
+                  {.cmd = "getparams", .parseArgFun = uart_parseGetparamsCmd,}, \
+                  {.cmd = "help", .parseArgFun = uart_parseHelpCmd},} 
                   // todo add reset
                   // todo add help
+
+#define HELP_STR "Available commands:\r\n" \
+                 "\t* help: displays this message\r\n" \
+                 "\t* clk <div...> <div...> <div...>: " \
+                    "sets the clk division registers\r\n"\
+                 "\t* direction <dir>: sets the direction " \
+                    "from the M7 viewpoint\r\n" \
+                    "\t\tdir can be 'send', 's', 'receive' or 'r'\r\n" \
+                 "\t* start: starts a measurement with the given " \
+                    "parameters\r\n" \
+                 "\t* repeat <num>: sets the repetition count of the " \
+                    "measurement, can be saturated\r\n" \
+                 "\t* datasize <size>: sets the size of the measured " \
+                    " message, can be saturated\r\n"
+#define HELP_STR_LEN (sizeof(HELP_STR) - 1)
+
+#define INIT_STR "IPC performance measurement application for FreeRTOS" \
+                    "Message Buffers\r\n\n" \
+                 HELP_STR // todo possibly hal, freertos version
+#define INIT_STR_LEN (sizeof(INIT_STR) - 1)
+
+#define PROMPT_STR "> "
+#define PROMPT_STR_LEN (sizeof(PROMPT_STR) - 1)
 
 typedef enum{
     SEND,
@@ -37,9 +62,10 @@ typedef struct {
     uint8_t clk_div2;
     uint8_t clk_div3;
     bool startMeas;
+    bool printHelp;
+    bool printParams;
     // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target
-    // todo help
     // todo getparams to print
 } uart_measParams;
 
@@ -66,6 +92,27 @@ typedef struct {
     uart_parseStatus (*parseArgFun)(const char* args, size_t len,
                                     uart_measParams* uartParams);
 } uart_Command;
+
+/**
+ * @brief Returns prompt string
+*/
+static inline const char* uart_getPrompt(void) {
+    return PROMPT_STR;
+}
+
+/**
+ * @brief Returns welcome message string for the application 
+*/
+static inline const char* uart_getInitStr(void) {
+    return INIT_STR;
+}
+
+/**
+ * @brief Returns the help string for the UART commands
+*/
+static inline const char* uart_getHelpStr(void) {
+    return HELP_STR;
+}
 
 /** 
  * @brief Store characters in a buffer of length LINE_BUFFER_LEN until newline char
@@ -121,6 +168,19 @@ uart_parseStatus uart_parseDirectionCmd(const char* args, size_t len,
  *  accordingly
 */
 uart_parseStatus uart_parseClkCmd(const char* args, size_t len,
+                                    uart_measParams* const uartParams);
+
+/**
+ * @brief Parses the arguments of the 'getparams' command and modifies the uartParams
+ *  accordingly
+*/
+uart_parseStatus uart_parseGetparamsCmd(const char* args, size_t len,
+                                    uart_measParams* const uartParams);
+
+/**
+ * @brief Parses the arguments of the 'help' command and modifies the uartParams
+*/
+uart_parseStatus uart_parseHelpCmd(const char* args, size_t len,
                                     uart_measParams* const uartParams);
 
 #endif /* UART_STATE_MACHINE_H */
