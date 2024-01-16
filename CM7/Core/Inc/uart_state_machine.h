@@ -16,32 +16,35 @@
 #define DIV_LIMITS {16, 16, 16} // todo div limits
 #define REPETITION_LIMIT 2048 // todo limit
 #define DATASIZE_LIMIT 16376
-#define COMMANDS {{.cmd = "clk", .parseArgFun = uart_parseClkCmd,}, \
-                  {.cmd = "direction", .parseArgFun = uart_parseDirectionCmd,}, \
-                  {.cmd = "start", .parseArgFun = uart_parseStartCmd,}, \
-                  {.cmd = "repeat", .parseArgFun = uart_parseRepeatCmd,}, \
-                  {.cmd = "datasize", .parseArgFun = uart_parseDatasizeCmd,}, \
-                  {.cmd = "getparams", .parseArgFun = uart_parseGetparamsCmd,}, \
-                  {.cmd = "help", .parseArgFun = uart_parseHelpCmd},} 
-                  // todo add reset
-                  // todo add help
 
-#define HELP_STR "Available commands:\r\n" \
-                 "\t* help: displays this message\r\n" \
-                 "\t* clk <div...> <div...> <div...>: " \
-                    "sets the clk division registers\r\n"\
-                 "\t* direction <dir>: sets the direction " \
-                    "from the M7 viewpoint\r\n" \
-                    "\t\tdir can be 'send', 's', 'receive' or 'r'\r\n" \
-                 "\t* start: starts a measurement with the given " \
-                    "parameters\r\n" \
-                 "\t* repeat <num>: sets the repetition count of the " \
-                    "measurement, can be saturated\r\n" \
-                 "\t* datasize <size>: sets the size of the measured " \
-                    " message, can be saturated\r\n"
+// X macro for commands
+// X(command, capital command, help string)
+#define COMMANDS(X) \
+    X(help, Help, "help: displays this message") \
+    X(getparams, Getparams, "getparams: displayes the current value of the measurement parameters") \
+    X(start, Start, "start: starts a measurement with the given parameters") \
+    X(direction, Direction, "direction <dir>: sets the direction from the M7 viewpoint\r\n\t\tdir can be 'send', 's', 'receive' or 'r'") \
+    X(clk, Clk, "clk <div...> <div...> <div...>: sets the clk division registers") \
+    X(repeat, Repeat, "repeat <num>: sets the repetition count of the measurement, can be saturated") \
+    X(datasize, Datasize, "datasize <size>: sets the size of the measured message, can be saturated")
+    // todo add reset
+    // todo add help
+
+// structure holding the command and the function parsing the arguments
+#define X_TO_UART_COMMANDS_STRUCT(command, cap, help) {.cmd = #command, .parseArgFun = uart_parse##cap##Cmd,},
+#define COMMANDS_STRUCT \
+    { \
+        COMMANDS(X_TO_UART_COMMANDS_STRUCT) \
+    }
+
+// constant help string
+#define X_TO_HELP_STR(command, cap, help) "\t*" help "\r\n"
+#define HELP_STR \
+    "Available commands:\r\n" \
+    COMMANDS(X_TO_HELP_STR)
 #define HELP_STR_LEN (sizeof(HELP_STR) - 1)
 
-#define INIT_STR "IPC performance measurement application for FreeRTOS" \
+#define INIT_STR "\r\nIPC performance measurement application for FreeRTOS" \
                     "Message Buffers\r\n\n" \
                  HELP_STR // todo possibly hal, freertos version
 #define INIT_STR_LEN (sizeof(INIT_STR) - 1)
@@ -135,52 +138,12 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
 uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
                                   uart_measParams* uartParams);
 
-/**
- * @brief Parses the arguments of the 'datasize' command and modifies the
- *  uartParams accordingly
-*/
-uart_parseStatus uart_parseDatasizeCmd(const char* args, size_t len,
-                                         uart_measParams* uartParams);
 
-/**
- * @brief Parses the arguments of the 'repeat' command and modifies the
- *  uartParams accordingly
-*/
-uart_parseStatus uart_parseRepeatCmd(const char* args, size_t len,
-                                      uart_measParams* uartParams);
-
-/**
- * @brief Parses the arguments of the 'start' command and modifies the
- *  uartParams accordingly 
-*/
-uart_parseStatus uart_parseStartCmd(const char* args, size_t len,
-                                      uart_measParams* uartParams);
-
-/**
- * @brief Parses the arguments of the 'direction' command and modifies the
- *  uartParams accordingly
-*/
-uart_parseStatus uart_parseDirectionCmd(const char* args, size_t len,
-                                          uart_measParams* uartParams);
-
-/**
- * @brief Parses the arguments of the 'clk' command and modifies the uartParams
- *  accordingly
-*/
-uart_parseStatus uart_parseClkCmd(const char* args, size_t len,
-                                    uart_measParams* const uartParams);
-
-/**
- * @brief Parses the arguments of the 'getparams' command and modifies the uartParams
- *  accordingly
-*/
-uart_parseStatus uart_parseGetparamsCmd(const char* args, size_t len,
-                                    uart_measParams* const uartParams);
-
-/**
- * @brief Parses the arguments of the 'help' command and modifies the uartParams
-*/
-uart_parseStatus uart_parseHelpCmd(const char* args, size_t len,
-                                    uart_measParams* const uartParams);
+// function definition for each parsing function 
+#define X_TO_TOKENIZE_FUN_DECL(command, cap, help) \
+    uart_parseStatus \
+    uart_parse##cap##Cmd( \
+        const char* args, size_t len, uart_measParams* uartParams);
+COMMANDS(X_TO_TOKENIZE_FUN_DECL)
 
 #endif /* UART_STATE_MACHINE_H */

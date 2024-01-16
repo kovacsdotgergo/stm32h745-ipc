@@ -129,7 +129,7 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
     const char* const argsBeg = cmdtok + cmdlen;
     size_t skippedLen = cmdtok - lineBuffer->buffer;
     size_t argsLen = lineBuffer->len - skippedLen - cmdlen;
-    const uart_Command cmds[] = COMMANDS;
+    const uart_Command cmds[] = COMMANDS_STRUCT;
     for (size_t i = 0; i < sizeof(cmds) / sizeof(cmds[0]); ++i) {
         // executing the matching command with the args
         if (strncmp(cmdtok, cmds[i].cmd, cmdlen) == 0) {
@@ -262,7 +262,7 @@ uart_parseStatus uart_parseDatasizeCmd(const char* args, size_t len,
 }
 
 //TODO continue, add message buffers and write into it
-uart_parseStatus uart_parseHelpCmd(const char* args, size_t len,
+uart_parseStatus uart_parseGetparamsCmd(const char* args, size_t len,
                                       uart_measParams* uartParams) {
     // check if there are arguments, zero needed
     uart_parseStatus status = getArgTokens(args, len, 0, NULL, NULL);
