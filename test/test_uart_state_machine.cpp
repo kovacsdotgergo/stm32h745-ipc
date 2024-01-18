@@ -207,7 +207,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Repeat) {
     auto ret = uart_parseBuffer(&lineBuffer, &measParams);
 
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(testRep < REPETITION_LIMIT ? testRep : REPETITION_LIMIT,
+    EXPECT_EQ(testRep < REPETITION_UP_LIMIT ? testRep : REPETITION_UP_LIMIT,
               measParams.numMeas);
 
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
@@ -226,7 +226,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Datasize) {
     auto ret = uart_parseBuffer(&lineBuffer, &measParams);
 
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(testSize < DATASIZE_LIMIT ? testSize : DATASIZE_LIMIT,
+    EXPECT_EQ(testSize < DATASIZE_UP_LIMIT ? testSize : DATASIZE_UP_LIMIT,
               measParams.dataSize);
 
     EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
@@ -243,7 +243,7 @@ TEST(strntouTest, NotDigitError) {
     size_t len = sizeof(input) - 1;
     uint32_t res;
 
-    uart_parseStatus ret = strntou(input, len, &res);
+    uart_parseStatus ret = strn_strntou(input, len, &res);
 
     EXPECT_EQ(PARSE_ARG_VAL_ERR, ret);
 }
@@ -253,7 +253,7 @@ TEST(strntouTest, Zero) {
     size_t len = sizeof(input) - 1;
     uint32_t res;
 
-    uart_parseStatus ret = strntou(input, len, &res);
+    uart_parseStatus ret = strn_strntou(input, len, &res);
 
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(0, res);
@@ -264,7 +264,7 @@ TEST(strntouTest, BigNum) {
     size_t len = sizeof(input) - 1;
     uint32_t res;
 
-    uart_parseStatus ret = strntou(input, len, &res);
+    uart_parseStatus ret = strn_strntou(input, len, &res);
 
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(4294967295U, res);

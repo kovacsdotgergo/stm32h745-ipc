@@ -54,7 +54,7 @@ void echoInput(char input) {
 */
 static void processUartControl(uart_measParams* uartParams) {
   uartParams->startMeas = false; // to wait for start
-  uartParams->printHelp = false;
+
   uart_parseStatus uartControlStatus;
   do {
     uart_BufferStatus bufferStatus;
@@ -80,9 +80,10 @@ static void processUartControl(uart_measParams* uartParams) {
         lineBuffer.len = 0;
       }
     } while (bufferStatus != BUFFER_DONE);
-
-      uartControlStatus = uart_parseBuffer(&lineBuffer, uartParams);
+      const char* msg = NULL;
+      uartControlStatus = uart_parseBuffer(&lineBuffer, uartParams, &msg);
       lineBuffer.len = 0;
+
       switch (uartControlStatus)
       {
       case PARSE_COMMAND_ERR:
@@ -101,9 +102,9 @@ static void processUartControl(uart_measParams* uartParams) {
         break;
       }
 
-      if (uartParams->printHelp) { // todo the commands return messages, infos, warnings
-        HAL_UART_Transmit(&huart3, (unsigned char*)uart_getHelpStr(), HELP_STR_LEN, HAL_MAX_DELAY);
-        uartParams->printHelp = false;
+      if (msg != NULL) {
+        size_t msglen = strlen(msg);
+        HAL_UART_Transmit(&huart3, (unsigned char*)msg, msglen, HAL_MAX_DELAY);
       }
 
   } while (!uartParams->startMeas);
@@ -131,7 +132,6 @@ void core1MeasurementTask( void *pvParameters ){
     .clk_div2 = 1,
     .clk_div3 = 1,
     .startMeas = false,
-    .printHelp = false,
   };
 
   uint8_t uartOutputBuffer[32];
