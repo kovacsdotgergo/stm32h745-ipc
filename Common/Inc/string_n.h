@@ -45,6 +45,6 @@ const char* strn_strntok(const char* str, size_t len,
  * @param[in] nlen Size of nstr
  * @returns True if the match is exact (length and content)
 */
-bool exact_strn_match(const char* cstr, const char* nstr, size_t nlen);
+bool strn_exactMatch(const char* cstr, const char* nstr, size_t nlen);
 
 #endif // STRING_N

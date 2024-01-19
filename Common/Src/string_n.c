@@ -83,6 +83,6 @@ const char* strn_strntok(const char* str, size_t len,
     }
 }
 
-bool exact_strn_match(const char* cstr, const char* nstr, size_t nlen) {
-    return strlen(cstr) == nlen && strncmp(cstr, nstr, nlen);
+bool strn_exactMatch(const char* cstr, const char* nstr, size_t nlen) {
+    return strlen(cstr) == nlen && strncmp(cstr, nstr, nlen) == 0;
 }

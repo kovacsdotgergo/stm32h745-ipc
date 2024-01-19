@@ -1,18 +1,48 @@
 #include "uart_state_machine.h"
 
-uart_BufferStatus uart_addCharToBuffer(char uartInput, uart_LineBuffer* lineBuffer) {
+void uart_initUartMeasParams(uart_measParams* measParams) {
+    measParams->numMeas = 1;
+    measParams->dataSize = DATASIZE_LOW_LIMIT;
+    measParams->direction = SEND;
+    measParams->clk_div1 = CLK_DIV_LOW_LIMIT;
+    measParams->clk_div2 = CLK_DIV_LOW_LIMIT;
+    measParams->clk_div3 = CLK_DIV_LOW_LIMIT;
+    measParams->startMeas = false;
+}
+
+void uart_clearUartMeasParams(uart_measParams* measParams) {
+    measParams->startMeas = false;
+}
+
+void uart_initLineBuffer(uart_LineBuffer* lineBuffer) {
+    lineBuffer->len = 0;
+}
+
+void uart_clearLineBuffer(uart_LineBuffer* lineBuffer) {
+    lineBuffer->len = 0;
+}
+
+uart_BufferStatus uart_addCharToBuffer(char uartInput,
+                                       uart_LineBuffer* lineBuffer,
+                                       const char** echo) {
     assert(lineBuffer != NULL);
+    static char echoBuf[2] = {0};
+    *echo = NULL;
     if (uartInput == '\r') { // line end sequence
+        *echo = "\r\n";
         return BUFFER_DONE;
     }
-    if (uartInput == '\b' && 0 < lineBuffer->len) { // deletion on backspace
+    if (uartInput == '\b' && 0 < lineBuffer->len) { // delete ch on backspace
         --lineBuffer->len;
+        *echo = "\b";
         return BUFFER_OK;
     }
     if (LINE_BUFFER_LEN <= lineBuffer->len) {
         return BUFFER_OVERFLOW;
     }
     lineBuffer->buffer[lineBuffer->len++] = uartInput;
+    echoBuf[0] = uartInput;
+    *echo = echoBuf;
     return BUFFER_OK;
 }
 
@@ -83,8 +113,7 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
     const uart_Command cmds[] = COMMANDS_STRUCT;
     for (size_t i = 0; i < sizeof(cmds) / sizeof(cmds[0]); ++i) {
         // executing the matching command with the args
-        if (strlen(cmds[i].cmd) == cmdlen 
-                && strncmp(cmdtok, cmds[i].cmd, cmdlen) == 0) {
+        if (strn_exactMatch(cmds[i].cmd, cmdtok, cmdlen)) {
             // argument tokens
             const size_t argnum = cmds[i].arg_num;
             size_t toklens[MAX_ARG_NUM];
@@ -118,9 +147,7 @@ uart_parseStatus uart_parseHelpCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Sets msg to a buffer with the current parameter values
-*/
+/** @brief Sets msg to a buffer with the current parameter values */
 uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
                                         uart_measParams* uartParams,
@@ -158,9 +185,7 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Sets the start field of the uartParams
-*/
+/** @brief Sets the start field of the uartParams */
 uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
                                     size_t toklens[MAX_ARG_NUM],
                                     uart_measParams* uartParams,
@@ -171,22 +196,20 @@ uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Parses the argument tokens, then sets the direction field of the
- *  uartParams
-*/
+/** @brief Parses the argument tokens, then sets the direction field of the
+ *      uartParams */
 uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
                                         uart_measParams* uartParams,
                                         const char** msg) {
     *msg = NULL;
     // string arg options
-    if (strncmp(toks[0], "send", toklens[0]) == 0
-        || strncmp(toks[0], "s", toklens[0]) == 0) {
+    if (strn_exactMatch("send", toks[0], toklens[0])
+            || strn_exactMatch("s", toks[0], toklens[0])) {
         uartParams->direction = SEND;
     }
-    else if (strncmp(toks[0], "receive", toklens[0]) == 0
-             || strncmp(toks[0], "r", toklens[0]) == 0) {
+    else if (strn_exactMatch("receive", toks[0], toklens[0]) == 0
+             || strn_exactMatch("r", toks[0], toklens[0]) == 0) {
         uartParams->direction = RECEIVE;
     }
     else {
@@ -196,10 +219,8 @@ uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Parses the argument tokens, then sets the clk fields of the 
- *  uartParams
-*/
+/** @brief Parses the argument tokens, then sets the clk fields of the 
+ *  uartParams */
 uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
                                   size_t toklens[MAX_ARG_NUM],
                                   uart_measParams* uartParams,
@@ -233,10 +254,8 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Parses the argument tokens, then sets the numMeas field of the
- *  uartParams
-*/
+/** @brief Parses the argument tokens, then sets the numMeas field of the
+ *  uartParams */
 uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
                                      size_t toklens[MAX_ARG_NUM],
                                      uart_measParams* uartParams,
@@ -258,10 +277,8 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/**
- * @brief Parses the argument tokens, then sets the datasize field of 
- *  uartParams
-*/
+/** @brief Parses the argument tokens, then sets the datasize field of 
+ *  uartParams */
 uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
                                        size_t toklens[MAX_ARG_NUM],
                                        uart_measParams* uartParams,

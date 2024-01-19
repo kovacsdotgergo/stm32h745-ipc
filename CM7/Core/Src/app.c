@@ -53,12 +53,13 @@ void echoInput(char input) {
  * @param[inout] uartParams parameters of the measurement to be performed
 */
 static void processUartControl(uart_measParams* uartParams) {
-  uartParams->startMeas = false; // to wait for start
+  uart_clearUartMeasParams(uartParams); // to wait for start
 
   uart_parseStatus uartControlStatus;
   do {
     uart_BufferStatus bufferStatus;
     uart_LineBuffer lineBuffer;
+    uart_initLineBuffer(&lineBuffer);
 
     HAL_UART_Transmit(&huart3, (unsigned char*)uart_getPrompt(), PROMPT_STR_LEN, HAL_MAX_DELAY);
     do {
@@ -72,17 +73,22 @@ static void processUartControl(uart_measParams* uartParams) {
         assert(false);
       }
       
-      bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer);
-      echoInput(uartInput);
+      const char* echo = NULL;
+      bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer, &echo);
+      
+      if (echo != NULL) {
+        HAL_UART_Transmit(&huart3, (const unsigned char*)echo, strlen(echo), HAL_MAX_DELAY);
+      }
+
       if (bufferStatus == BUFFER_OVERFLOW) {
         // todo print overflow message
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Input buffer overflow\r\n", 24, HAL_MAX_DELAY);
-        lineBuffer.len = 0;
+        HAL_UART_Transmit(&huart3, (const unsigned char*)"\r\nInput buffer overflow\r\n", 24, HAL_MAX_DELAY);
+        uart_clearLineBuffer(&lineBuffer);
       }
     } while (bufferStatus != BUFFER_DONE);
       const char* msg = NULL;
       uartControlStatus = uart_parseBuffer(&lineBuffer, uartParams, &msg);
-      lineBuffer.len = 0;
+      uart_clearLineBuffer(&lineBuffer);
 
       switch (uartControlStatus)
       {
@@ -124,15 +130,8 @@ static void prepareMeasParams(uart_measParams params) {
 void core1MeasurementTask( void *pvParameters ){
   ( void ) pvParameters;
 
-  uart_measParams uartParams = {
-    .numMeas = 0,
-    .dataSize = 0,
-    .direction = SEND,
-    .clk_div1 = 1,
-    .clk_div2 = 1,
-    .clk_div3 = 1,
-    .startMeas = false,
-  };
+  uart_measParams uartParams;
+  uart_initUartMeasParams(&uartParams);
 
   uint8_t uartOutputBuffer[32];
   endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function

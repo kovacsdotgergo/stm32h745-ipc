@@ -111,44 +111,50 @@ typedef struct {
                                     const char** msg);
 } uart_Command;
 
-/**
- * @brief Returns prompt string
-*/
+/** @brief Returns prompt string */
 static inline const char* uart_getPrompt(void) {
     return PROMPT_STR;
 }
 
-/**
- * @brief Returns welcome message string for the application 
-*/
+/** @brief Returns welcome message string for the application */
 static inline const char* uart_getInitStr(void) {
     return INIT_STR;
 }
 
-/**
- * @brief Returns the help string for the UART commands
-*/
+/** @brief Returns the help string for the UART commands */
 static inline const char* uart_getHelpStr(void) {
     return HELP_STR;
 }
 
-/**
- * @returns t with the enum
-*/
+/** @brief Initializes the structure to the default values */
+void uart_initUartMeasParams(uart_measParams* measParams);
+
+/** @brief Clears some of the the values to prepare for the next parse */
+void uart_clearUartMeasParams(uart_measParams* measParams);
+
+/** @returns The string equivalent for the enum */
 static inline const char* uart_measDirectionToStr(uart_measDirection dir) {
     assert(dir == SEND || dir == RECEIVE);
     return dir == SEND ? "M7 send" : "M7 receive";
 }
+
+/** @brief Initializes the buffer to the default values */
+void uart_initLineBuffer(uart_LineBuffer* lineBuffer);
+
+/** @brief Clears the buffer */
+void uart_clearLineBuffer(uart_LineBuffer* lineBuffer);
 
 /** 
  * @brief Store characters in a buffer of length LINE_BUFFER_LEN until newline char
  * @note using a single CR as the line end character as it is the PUTTY default 
  * @param[in] uartInput input char
  * @param[in] lineBuffer the buffer to store characters to
+ * @param[out] echo string to echo
  * @returns status of the buffer
 */
 uart_BufferStatus uart_addCharToBuffer(char uartInput, 
-                                       uart_LineBuffer* lineBuffer);
+                                       uart_LineBuffer* lineBuffer,
+                                       const char** echo);
 
 /**
  * @brief Parse the line buffer and execute the corresponding command on uartParams
