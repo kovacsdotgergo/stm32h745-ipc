@@ -32,9 +32,11 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
         *echo = "\r\n";
         return BUFFER_DONE;
     }
-    if (uartInput == '\b' && 0 < lineBuffer->len) { // delete ch on backspace
-        --lineBuffer->len;
-        *echo = "\b";
+    if (uartInput == '\b') { // delete ch on backspace
+        if (0 < lineBuffer->len) {
+            --lineBuffer->len;
+            *echo = "\b";
+        }
         return BUFFER_OK;
     }
     if (LINE_BUFFER_LEN <= lineBuffer->len) {
@@ -143,6 +145,7 @@ uart_parseStatus uart_parseHelpCmd(const char* toks[MAX_ARG_NUM],
                                    size_t toklens[MAX_ARG_NUM],
                                    uart_measParams* uartParams,
                                    const char** msg) {
+    (void)toks; (void)toklens; (void)uartParams;
     *msg = uart_getHelpStr();
     return PARSE_OK;
 }
@@ -152,6 +155,7 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
                                         uart_measParams* uartParams,
                                         const char** msg) {
+    (void)toks; (void)toklens;
     size_t cursor = 0;
     cursor += addStrToBuf(&msgBuf[cursor], "Current value of parameters:");
 
@@ -190,6 +194,7 @@ uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
                                     size_t toklens[MAX_ARG_NUM],
                                     uart_measParams* uartParams,
                                     const char** msg) {
+    (void)toks; (void)toklens;
     // signal start of meas
     uartParams->startMeas = true;
     *msg = NULL;
@@ -208,8 +213,8 @@ uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
             || strn_exactMatch("s", toks[0], toklens[0])) {
         uartParams->direction = SEND;
     }
-    else if (strn_exactMatch("receive", toks[0], toklens[0]) == 0
-             || strn_exactMatch("r", toks[0], toklens[0]) == 0) {
+    else if (strn_exactMatch("receive", toks[0], toklens[0])
+             || strn_exactMatch("r", toks[0], toklens[0])) {
         uartParams->direction = RECEIVE;
     }
     else {
@@ -263,9 +268,8 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
     *msg = NULL;
     // arg conversion from string
     uint32_t count;
-    uart_parseStatus status = strn_strntou(toks[0], toklens[0], &count);
-    if (status != PARSE_OK) {
-        return status;
+    if (!strn_strntou(toks[0], toklens[0], &count)) {
+        return PARSE_ARG_VAL_ERR;
     }
 
     // validating the argument
@@ -286,9 +290,8 @@ uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
     *msg = NULL;
     // arg conversion from string
     uint32_t datasize;
-    uart_parseStatus status = strn_strntou(toks[0], toklens[0], &datasize);
-    if (status != PARSE_OK) {
-        return status;
+    if (!strn_strntou(toks[0], toklens[0], &datasize)) {
+        return PARSE_ARG_VAL_ERR;
     }
 
     if (DATASIZE_UP_LIMIT < datasize) {

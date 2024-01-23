@@ -1,4 +1,4 @@
-.PHONY: test all clean setup
+.PHONY: test all clean setup tmp_test
 
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g3
@@ -11,25 +11,39 @@ BUILD_DIR = build
 WORKSPACE = ..
 INLCUDE += -I$(WORKSPACE)/CM7/Core/Inc/
 INLCUDE += -I$(WORKSPACE)/CM7/Core/Src/
+INLCUDE += -I$(WORKSPACE)/Common/Inc/
 CM7_SRC_DIR = $(WORKSPACE)/CM7/Core/Src
+COMMON_SRC_DIR = $(WORKSPACE)/Common/Src
 
-SRC_NAME = uart_state_machine.c
-SRC = $(CM7_SRC_DIR)/$(SRC_NAME)
-OBJ = $(addprefix $(BUILD_DIR)/,$(SRC_NAME:.c=.o))
+CM7_SRCS = $(CM7_SRC_DIR)/uart_state_machine.c
+CM7_BUILD_DIR = $(BUILD_DIR)/CM7
+COMMON_SRCS = $(COMMON_SRC_DIR)/string_n.c
+COMMON_BUILD_DIR = $(BUILD_DIR)/Common
+CM7_OBJ = $(addprefix $(CM7_BUILD_DIR)/, $(notdir $(CM7_SRCS:.c=.o)))
+COMMON_OBJ = $(addprefix $(COMMON_BUILD_DIR)/, $(notdir $(COMMON_SRCS:.c=.o)))
+	  
+TEST_EXEC = unit_test
+TEST_TARGET = $(addprefix $(BUILD_DIR)/, $(TEST_EXEC))
 
-TEST_TARGET_NAME = unit_test
-TEST_TARGET = $(addprefix $(BUILD_DIR)/,$(TEST_TARGET_NAME))
-TEST_SRC = test_uart_state_machine.cpp
-TEST_OBJ = $(addprefix $(BUILD_DIR)/,$(TEST_SRC:.cpp=.o))
+TESTS = test_main.cpp
+TEST_OBJ = $(addprefix $(BUILD_DIR)/, $(TESTS:.cpp=.o))
 
-$(OBJ): $(SRC) setup
-	$(CC) $(CFLAGS) -c $(SRC) -o $(OBJ) $(INLCUDE)
+# $@ is the target, @< is the first prerequisite
+$(CM7_OBJ): $(CM7_SRCS) | setup
+	@echo "building cm7"
+	$(CC) $(CFLAGS) -c $< -o $@ $(INLCUDE)
 
-$(TEST_TARGET): $(TEST_OBJ)
-	$(CXX) $(CXXFLAGS) -o $(TEST_TARGET) $(TEST_OBJ) $(TEST_FLAGS)
+$(COMMON_OBJ): $(COMMON_SRCS) | setup
+	@echo "building common"
+	$(CC) $(CFLAGS) -c $< -o $@ $(INLCUDE)
 
-$(TEST_OBJ): $(TEST_SRC) setup
-	$(CXX) $(CXXFLAGS) -c $(TEST_SRC) -o $(TEST_OBJ) $(INLCUDE)
+$(TEST_TARGET): $(TEST_OBJ) $(CM7_OBJ) $(COMMON_OBJ)
+	@echo "building target"
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(TEST_FLAGS)
+
+$(TEST_OBJ): $(TESTS) | setup
+	@echo "building testobj"
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INLCUDE)
 
 all: $(TEST_TARGET)
 
@@ -39,5 +53,16 @@ test: all
 clean:
 	rm -r build
 
+# could alternatively use mkdir as a command to make the directories and
+#	add the dirs with | as a prerequisite
 setup:
+	@echo "setting up build folder structure"
 	mkdir -p $(BUILD_DIR)
+	mkdir -p $(CM7_BUILD_DIR)
+	mkdir -p $(COMMON_BUILD_DIR)
+
+tmp_test: $(CM7_SRCS) $(COMMON_SRCS)
+	@echo $(CM7_SRCS) $(COMMON_SRCS)
+	@echo 
+	@echo $(addprefix $(BUILD_DIR)/Common/,$(notdir $(COMMON_SRCS:.c=.o)))
+	

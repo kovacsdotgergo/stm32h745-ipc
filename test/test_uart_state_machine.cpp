@@ -1,7 +1,14 @@
 #include <gtest/gtest.h>
 
+// eliminating the c restrict keyword
+#ifdef __GNUC__
+    #define restrict __restrict__
+#else 
+    #define restrict
+#endif
+
 extern "C" {
-    #include "uart_state_machine.c"
+    #include "uart_state_machine.h"
 }
 
 // uartLineBufferTest =====================================================
@@ -13,13 +20,14 @@ TEST(uartLineBufferTest, CorrectString) {
         .buffer = {0},
         .len = 0,
     };
+    const char* echo = NULL;
 
     for (size_t i = 0; i < len; ++i) {
-        auto ret = uart_addCharToBuffer(inString[i], &lineBuffer);
+        auto ret = uart_addCharToBuffer(inString[i], &lineBuffer, &echo);
         EXPECT_EQ(BUFFER_OK, ret);
         EXPECT_EQ(i + 1, lineBuffer.len);
     }
-    auto ret = uart_addCharToBuffer('\r', &lineBuffer);
+    auto ret = uart_addCharToBuffer('\r', &lineBuffer, &echo);
 
     EXPECT_EQ(BUFFER_DONE, ret);
     EXPECT_EQ(len, lineBuffer.len);
@@ -31,9 +39,27 @@ TEST(uartLineBufferTest, Overflow) {
         .buffer = {0},
         .len = LINE_BUFFER_LEN,
     };
+    const char* echo = NULL;
     // testing for a uniformly filled string
-    auto ret = uart_addCharToBuffer('a', &lineBuffer);
+    auto ret = uart_addCharToBuffer('a', &lineBuffer, &echo);
     EXPECT_EQ(BUFFER_OVERFLOW, ret);
+}
+
+TEST(uartLineBufferTest, Backspace) {
+    uart_LineBuffer lineBuffer = {
+        .buffer = {[0] = 'a'},
+        .len = 1,
+    };
+    const char* echo = NULL;
+
+    // first deletion with char in the buffer
+    auto ret = uart_addCharToBuffer('\b', &lineBuffer, &echo);
+    EXPECT_EQ(BUFFER_OK, ret);
+    EXPECT_EQ(0, lineBuffer.len);
+    // second deletion with empty buffer
+    ret = uart_addCharToBuffer('\b', &lineBuffer, &echo);
+    EXPECT_EQ(BUFFER_OK, ret);
+    EXPECT_EQ(0, lineBuffer.len);
 }
 
 // uartLineParserTest =====================================================
@@ -47,8 +73,9 @@ TEST(uartLineParserTest, EmptyLine) {
         lineBuffer.buffer[i] = cmd[i];
     }
     uart_measParams measParams;
+    const char* msg = NULL;
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     EXPECT_EQ(PARSE_COMMAND_ERR, ret);
 }
 
@@ -67,13 +94,14 @@ TEST(uartLineParserTest, CmdAtTheEnd) {
         lineBuffer.buffer[i] = cmd[j];
     }
     uart_measParams measParams;
+    const char* msg = NULL;
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     EXPECT_EQ(PARSE_ARG_NUM_ERR, ret);
 }
 
 TEST(uartLineParserTest, InvalidCmd) {
-    const char cmd[] = "abc";
+    const char cmd[] = "repea";
     uart_LineBuffer lineBuffer = {
         .buffer = {},
         .len = sizeof(cmd) - 1,
@@ -82,8 +110,9 @@ TEST(uartLineParserTest, InvalidCmd) {
         lineBuffer.buffer[i] = cmd[i];
     }
     uart_measParams measParams;
+    const char* msg = NULL;
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     EXPECT_EQ(PARSE_COMMAND_ERR, ret);
 }
 
@@ -98,13 +127,14 @@ TEST(uartLineParserTest, WrongNumOfArgs) {
         lineBuffer.buffer[i] = cmd[i];
     }
     uart_measParams measParams;
+    const char* msg = NULL;
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     EXPECT_EQ(PARSE_ARG_NUM_ERR, ret);
 }
 
 TEST(uartLineParserTest, InvalidArg) {
-    const char cmd[] = " \t direction \t\tse\0nd";
+    const char cmd[] = " \t direction \t\tsen\0";
     uart_LineBuffer lineBuffer = {
         .buffer = {},
         .len = sizeof(cmd) - 1,
@@ -113,8 +143,9 @@ TEST(uartLineParserTest, InvalidArg) {
         lineBuffer.buffer[i] = cmd[i];
     }
     uart_measParams measParams;
+    const char* msg = NULL;
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     EXPECT_EQ(PARSE_ARG_VAL_ERR, ret);
 }
 
@@ -132,6 +163,7 @@ public:
         .startMeas = false,
     };
     const uart_measParams defaultMeasParams{measParams};
+    const char* msg{NULL};
 
     void setupCmd(const char* cmd, size_t cmdlen) {
         assert(cmdlen < LINE_BUFFER_LEN);
@@ -145,18 +177,23 @@ public:
 TEST_F(uartLineParserCorrectCmdsTest, Clk) {
     const char cmd[] = " \t clk \t\t 00 \t 150\t\t 929487320 \t";
     uint32_t testDivs[] = {0U, 150U, 929487320U};
-    uint32_t divLimits[] = DIV_LIMITS;
     setupCmd(cmd, sizeof(cmd) - 1);
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     
+    // expecting saturated values
+    for (size_t i = 0; i < 3; ++i) {
+        if (testDivs[i] < CLK_DIV_LOW_LIMIT) {
+            testDivs[i] = CLK_DIV_LOW_LIMIT;
+        }
+        else if (CLK_DIV_UP_LIMIT < testDivs[i]) {
+            testDivs[i] = CLK_DIV_UP_LIMIT;
+        }
+    }
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(testDivs[0] < divLimits[0] ? testDivs[0] : divLimits[0],
-              measParams.clk_div1);
-    EXPECT_EQ(testDivs[1] < divLimits[1] ? testDivs[1] : divLimits[1],
-              measParams.clk_div2);
-    EXPECT_EQ(testDivs[2] < divLimits[2] ? testDivs[2] : divLimits[2],
-              measParams.clk_div3);
+    EXPECT_EQ(testDivs[0], measParams.clk_div1);
+    EXPECT_EQ(testDivs[1], measParams.clk_div2);
+    EXPECT_EQ(testDivs[2], measParams.clk_div3);
 
     EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
@@ -169,7 +206,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Direction) {
     const char cmd[] = "direction \treceive ";
     setupCmd(cmd, sizeof(cmd) - 1);
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(RECEIVE, measParams.direction);
@@ -186,7 +223,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Start) {
     const char cmd[] = "start";
     setupCmd(cmd, sizeof(cmd) - 1);
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
     
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(true, measParams.startMeas);
@@ -204,7 +241,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Repeat) {
     uint32_t testRep = 2980U;
     setupCmd(cmd, sizeof(cmd) - 1);
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
 
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(testRep < REPETITION_UP_LIMIT ? testRep : REPETITION_UP_LIMIT,
@@ -219,15 +256,20 @@ TEST_F(uartLineParserCorrectCmdsTest, Repeat) {
 }
 
 TEST_F(uartLineParserCorrectCmdsTest, Datasize) {
-        const char cmd[] = "datasize \t 389";
+    const char cmd[] = "datasize \t 389";
     uint32_t testSize = 389U;
     setupCmd(cmd, sizeof(cmd) - 1);
 
-    auto ret = uart_parseBuffer(&lineBuffer, &measParams);
+    auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
 
+    if (testSize < DATASIZE_LOW_LIMIT) {
+        testSize = DATASIZE_LOW_LIMIT;
+    }
+    else if (DATASIZE_UP_LIMIT < testSize) {
+        testSize = DATASIZE_UP_LIMIT;
+    }
     EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(testSize < DATASIZE_UP_LIMIT ? testSize : DATASIZE_UP_LIMIT,
-              measParams.dataSize);
+    EXPECT_EQ(testSize, measParams.dataSize);
 
     EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
     EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
@@ -235,65 +277,4 @@ TEST_F(uartLineParserCorrectCmdsTest, Datasize) {
     EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
     EXPECT_EQ(defaultMeasParams.clk_div3, measParams.clk_div3);
     EXPECT_EQ(defaultMeasParams.startMeas, measParams.startMeas);
-}
-
-// strntouTest ============================================================
-TEST(strntouTest, NotDigitError) {
-    const char input[] = "10a98";
-    size_t len = sizeof(input) - 1;
-    uint32_t res;
-
-    uart_parseStatus ret = strn_strntou(input, len, &res);
-
-    EXPECT_EQ(PARSE_ARG_VAL_ERR, ret);
-}
-
-TEST(strntouTest, Zero) {
-    const char input[] = "0000";
-    size_t len = sizeof(input) - 1;
-    uint32_t res;
-
-    uart_parseStatus ret = strn_strntou(input, len, &res);
-
-    EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(0, res);
-}
-
-TEST(strntouTest, BigNum) {
-    const char input[] = "4294967295"; // 2**32 - 1
-    size_t len = sizeof(input) - 1;
-    uint32_t res;
-
-    uart_parseStatus ret = strn_strntou(input, len, &res);
-
-    EXPECT_EQ(PARSE_OK, ret);
-    EXPECT_EQ(4294967295U, res);
-}
-
-// charInStrTest ==========================================================
-TEST(charInStrTest, charIsInString) {
-    const char c = ' ';
-    const char str[] = " \n";
-
-    bool ret = charInStr(c, str);
-
-    EXPECT_EQ(true, ret);
-}
-
-TEST(charInStrTest, charIsNotInString) {
-    const char c = 'a';
-    const char str[] = "cd";
-    
-    bool ret = charInStr(c, str);
-
-    EXPECT_EQ(false, ret);
-}
-
-TEST(charInStrTest, charIsNull) {
-    const char c = '\0';
-    const char str[] = " ";
-    
-    bool ret = charInStr(c, str);
-
-    EXPECT_EQ(false, ret);
 }

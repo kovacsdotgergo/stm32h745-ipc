@@ -176,4 +176,8 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
         uart_measParams* uartParams, const char** msg);
 COMMANDS(X_TO_TOKENIZE_FUN_DECL)
 
+#ifdef TEST
+    
+#endif
+
 #endif /* UART_STATE_MACHINE_H */
