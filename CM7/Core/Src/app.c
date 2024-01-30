@@ -125,7 +125,8 @@ static void prepareMeasParams(uart_measParams params) {
   ctrl_setDataSize(params.dataSize); /* Sharing the meas parameters */
   ctrl_setDirection((params.direction == SEND) ? M7_SEND : M7_RECIEVE);
   // setup what is needed e.g. clk, memory buffer selection
-  ctrl_setupClk(params.clk_m7, params.clk_m4);
+  ClkErr err = ctrl_setupClk(params.clk_m7, params.clk_m4);
+  assert(err == CLK_OK); // params already validated
 }
 
 void core1MeasurementTask( void *pvParameters ){
@@ -144,6 +145,11 @@ void core1MeasurementTask( void *pvParameters ){
     processUartControl(&uartParams);
 
     prepareMeasParams(uartParams); // share with the other core
+    //todo tmp echo
+    uint32_t m4clk, m7clk;
+    ctrl_getClks(&m7clk, &m4clk);
+    sprintf((char*)uartOutputBuffer, "m7: %lu m4: %lu\r\n", m7clk, m4clk);
+    HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen((char*)uartOutputBuffer), HAL_MAX_DELAY);
 
     for(uint32_t i = 0; i < uartParams.numMeas; ++i){
       /* Signaling to the other core*/
@@ -220,7 +226,7 @@ void app_measureCore1Recieving(void){
 void app_createTasks(void){
   // creating the tasks for the M7 core
   const uint8_t mainAMP_TASK_PRIORITY = configMAX_PRIORITIES - 2;
-  xTaskCreate(core1MeasurementTask, "AMPCore1", configMINIMAL_STACK_SIZE, \
+  xTaskCreate(core1MeasurementTask, "AMPCore1", 2*configMINIMAL_STACK_SIZE, \
       NULL, mainAMP_TASK_PRIORITY, &core1TaskHandle);
   configASSERT( core1TaskHandle );
 }
