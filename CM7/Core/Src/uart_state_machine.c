@@ -4,9 +4,8 @@ void uart_initUartMeasParams(uart_measParams* measParams) {
     measParams->numMeas = 1;
     measParams->dataSize = DATASIZE_LOW_LIMIT;
     measParams->direction = SEND;
-    measParams->clk_div1 = CLK_DIV_LOW_LIMIT;
-    measParams->clk_div2 = CLK_DIV_LOW_LIMIT;
-    measParams->clk_div3 = CLK_DIV_LOW_LIMIT;
+    measParams->clk_m7 = 1; // todo meaningful init
+    measParams->clk_m4 = 1;
     measParams->startMeas = false;
 }
 
@@ -171,14 +170,11 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     cursor += addStrToBuf(&msgBuf[cursor],
                           uart_measDirectionToStr(uartParams->direction));
 
-    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* clk divs: ");
-    cursor += strn_utostrn(uartParams->clk_div1, 
+    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* m7 clk [MHz]: ");
+    cursor += strn_utostrn(uartParams->clk_m7, 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
-    cursor += addStrToBuf(&msgBuf[cursor], " ");
-    cursor += strn_utostrn(uartParams->clk_div2, 
-                      &msgBuf[cursor], MAX_MSG_LEN - cursor);
-    cursor += addStrToBuf(&msgBuf[cursor], " ");
-    cursor += strn_utostrn(uartParams->clk_div3, 
+    cursor += addStrToBuf(&msgBuf[cursor], ", m4 clk [MHz]: ");
+    cursor += strn_utostrn(uartParams->clk_m4, 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n");
 
@@ -232,30 +228,28 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
                                   const char** msg) {
     *msg = NULL;
     // convert the args
-    uint32_t divs[3];
-    bool warn = false;
-    for (size_t i = 0; i < 3; ++i) {
-        if (!strn_strntou(toks[i], toklens[i], &divs[i])) {
+    uint32_t clks[2];
+    for (size_t i = 0; i < 2; ++i) {
+        if (!strn_strntou(toks[i], toklens[i], &clks[i])) {
             return PARSE_ARG_VAL_ERR;
         }
     }
-    for (size_t i = 0; i < 3; ++i) {
-        // validating the arg values
-        if (CLK_DIV_UP_LIMIT < divs[i]) {
-            // todo print message about saturating argument or signal it somehow
-            divs[i] = CLK_DIV_UP_LIMIT;
-            warn = true;
-        }
-        else if (divs[i] < CLK_DIV_LOW_LIMIT) {
-            divs[i] = CLK_DIV_LOW_LIMIT;
-            warn = true;
-        }
-    }
-    if (warn) *msg = "Some of the clk divs saturated\r\n";
 
-    uartParams->clk_div1 = (uint8_t)divs[0];
-    uartParams->clk_div2 = (uint8_t)divs[1];
-    uartParams->clk_div3 = (uint8_t)divs[2];
+    ClkErr err = ctrl_validateClks(clks[0], clks[1]);
+    if (err == CLK_M7_ERR) {
+        *msg = "Invalid m7 clk frequency\r\n";
+        return PARSE_ARG_VAL_ERR;
+    }
+    else if (err == CLK_M4_ERR) {
+        *msg = "Invalid m4 clk frequency\r\n";
+        return PARSE_ARG_VAL_ERR;
+    }
+    else if (err != CLK_OK) {
+        assert(false);
+    }
+
+    uartParams->clk_m7 = clks[0];
+    uartParams->clk_m4 = clks[1];
     return PARSE_OK;
 }
 

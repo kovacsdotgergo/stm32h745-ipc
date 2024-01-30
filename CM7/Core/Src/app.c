@@ -125,6 +125,7 @@ static void prepareMeasParams(uart_measParams params) {
   ctrl_setDataSize(params.dataSize); /* Sharing the meas parameters */
   ctrl_setDirection((params.direction == SEND) ? M7_SEND : M7_RECIEVE);
   // setup what is needed e.g. clk, memory buffer selection
+  ctrl_setupClk(params.clk_m7, params.clk_m4);
 }
 
 void core1MeasurementTask( void *pvParameters ){

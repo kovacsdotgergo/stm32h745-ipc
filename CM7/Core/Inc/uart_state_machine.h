@@ -1,21 +1,20 @@
 #ifndef UART_STATE_MACHINE_H
 #define UART_STATE_MACHINE_H
-
+// todo possible refactor: the command set the parameters, using function
+//  pointers to cntrl, starting a measurement is only the intercore 
+//  interrupt, because the system is already set up
+// this way no duplication of the parameter validation logic is needed 
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
-#include <stdalign.h>
 #include "string_n.h"
+#include "meas_control.h" // to validate clocks
 
 #define LINE_BUFFER_LEN 64
 #define CMD_DELIMITERS " \t"
-
-#define CLK_DIV_UP_LIMIT 16 // todo div limits
-#define CLK_DIV_LOW_LIMIT 1
-static_assert(CLK_DIV_LOW_LIMIT <= CLK_DIV_UP_LIMIT);
 
 #define REPETITION_UP_LIMIT 2048 // todo limit
 
@@ -30,7 +29,7 @@ static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
     X(getparams, Getparams, 0, "getparams: displays the current value of the measurement parameters") \
     X(start, Start, 0, "start: starts a measurement with the given parameters") \
     X(direction, Direction, 1, "direction <dir>: sets the direction from the M7 viewpoint\r\n\t\tdir can be 'send', 's', 'receive' or 'r'") \
-    X(clk, Clk, 3, "clk <div...> <div...> <div...>: sets the clk division registers") \
+    X(clk, Clk, 2, "clk <m7clk[Hz]> <m4clk[Hz]>: sets the clk frequencies if possible") \
     X(repeat, Repeat, 1, "repeat <num>: sets the repetition count of the measurement, can be saturated") \
     X(datasize, Datasize, 1, "datasize <size>: sets the size of the measured message, can be saturated")
     // todo add reset
@@ -88,9 +87,8 @@ typedef struct {
     uint32_t numMeas;
     uint32_t dataSize;
     uart_measDirection direction;
-    uint8_t clk_div1;
-    uint8_t clk_div2;
-    uint8_t clk_div3;
+    uint32_t clk_m7;
+    uint32_t clk_m4;
     bool startMeas;
     // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target
@@ -175,9 +173,5 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
         const char* toks[MAX_ARG_NUM], size_t toklens[MAX_ARG_NUM], \
         uart_measParams* uartParams, const char** msg);
 COMMANDS(X_TO_TOKENIZE_FUN_DECL)
-
-#ifdef TEST
-    
-#endif
 
 #endif /* UART_STATE_MACHINE_H */
