@@ -22,11 +22,11 @@ typedef enum {
 void ctrl_initInterrupts(void);
 
 /* Triggering interupt used for IPC signaling start of meas */
-void generateInterruptIPC_startMeas(void);
+void ctrl_generateInterruptIPC_startMeas(void);
 
 /* Interrupt handler for int triggered from Core2, used for singaling end
     of measurement */
-void interruptHandlerIPC_endMeas( void );
+void ctrl_interruptHandlerIPC_endMeas( void );
 
 /* Setting the clock dividers on the fly for the M7 and M4 cores */
 ClkErr ctrl_setupClk(uint32_t m7clk, uint32_t m4clk);

@@ -1,5 +1,5 @@
-#ifndef UART_STATE_MACHINE_H
-#define UART_STATE_MACHINE_H
+#ifndef UART_COMMANDS_H
+#define UART_COMMANDS_H
 // todo possible refactor: the command set the parameters, using function
 //  pointers to cntrl, starting a measurement is only the intercore 
 //  interrupt, because the system is already set up
@@ -15,6 +15,10 @@
 
 #define LINE_BUFFER_LEN 64
 #define CMD_DELIMITERS " \t"
+
+#define PUTTY_DEL 127
+#define PUTTY_SENDS_NEW_LINE '\r'
+#define PUTTY_PRINTS_NEW_LINE "\r\n"
 
 #define REPETITION_UP_LIMIT 2048 // todo limit
 
@@ -59,6 +63,7 @@ typedef union {
 
 #define INIT_STR "\r\nIPC performance measurement application for FreeRTOS" \
                     " Message Buffers\r\n\n" \
+                 "Backspace is supported when typing in commands\r\n\n"
                  HELP_STR // todo possibly hal, freertos version
 #define INIT_STR_LEN (sizeof(INIT_STR) - 1)
 
@@ -94,6 +99,10 @@ typedef struct {
     // todo endpoints possibly on the same processor ~ enum source and target
     // todo getparams to print
 } uart_measParams;
+
+typedef struct {
+    clkerr
+} uart_execCmdFuncs;
 
 typedef struct {
     char buffer[LINE_BUFFER_LEN];
@@ -174,4 +183,4 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
         uart_measParams* uartParams, const char** msg);
 COMMANDS(X_TO_TOKENIZE_FUN_DECL)
 
-#endif /* UART_STATE_MACHINE_H */
+#endif /* UART_COMMANDS_H */

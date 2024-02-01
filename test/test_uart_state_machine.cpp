@@ -8,7 +8,7 @@
 #endif
 
 extern "C" {
-    #include "uart_state_machine.h"
+    #include "uart_commands.h"
 }
 
 // uartLineBufferTest =====================================================

@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "app.h"
 #include "message_buffer.h"
+#include "ipc_mb.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

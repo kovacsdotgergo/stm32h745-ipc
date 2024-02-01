@@ -39,7 +39,9 @@ extern volatile StaticStreamBuffer_t xStreamBufferStruct[4];
 extern volatile uint8_t ucStorageBuffer_ctrl[2][ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
 extern volatile uint8_t ucStorageBuffer[2][ mbaTASK_MESSAGE_BUFFER_SIZE ];
 
+/* Triggering interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
+/* MessageBuffer functionality, recieving message */
 void interruptHandlerIPC_messageBuffer( void );
 
 #endif /* IPC_MB_COMMON_H */

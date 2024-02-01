@@ -1,4 +1,4 @@
-#include "uart_state_machine.h"
+#include "uart_commands.h"
 
 void uart_initUartMeasParams(uart_measParams* measParams) {
     measParams->repeat = 1;
@@ -27,14 +27,14 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
     assert(lineBuffer != NULL);
     static char echoBuf[2] = {0};
     *echo = NULL;
-    if (uartInput == '\r') { // line end sequence
-        *echo = "\r\n";
+    if (uartInput == PUTTY_SENDS_NEW_LINE) { // line end sequence
+        *echo = PUTTY_PRINTS_NEW_LINE;
         return BUFFER_DONE;
     }
-    if (uartInput == '\b') { // delete ch on backspace
+    if (uartInput == PUTTY_DEL) { // delete last char on backspace
         if (0 < lineBuffer->len) {
             --lineBuffer->len;
-            *echo = "\b";
+            *echo = PUTTY_DEL;
         }
         return BUFFER_OK;
     }

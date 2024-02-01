@@ -26,7 +26,7 @@
 //#include "ipc_mb_common.h"
 #include <stdio.h>
 #include <string.h>
-#include "uart_state_machine.h"
+#include "uart_commands.h"
 #include "app.h"
 #include "ipc_mb.h"
 /* USER CODE END Includes */
