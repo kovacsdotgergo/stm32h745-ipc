@@ -84,11 +84,11 @@ typedef enum { // todo could merge with the buffer errors
 } uart_parseStatus;
 
 typedef struct {
-    uint32_t numMeas;
+    uint32_t repeat;
     uint32_t dataSize;
     uart_measDirection direction;
-    uint32_t clk_m7;
-    uint32_t clk_m4;
+    uint32_t clkM7;
+    uint32_t clkM4;
     bool startMeas;
     // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target

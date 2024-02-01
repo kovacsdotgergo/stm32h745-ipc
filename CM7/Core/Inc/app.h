@@ -16,7 +16,6 @@
 #include "time_meas.h"
 #include "meas_control.h"
 #include "uart_state_machine.h"
-#include "error_handler.h"
 
 extern TaskHandle_t core1TaskHandle;
 extern SemaphoreHandle_t endMeasSemaphore;

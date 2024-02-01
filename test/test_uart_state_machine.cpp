@@ -154,7 +154,7 @@ class uartLineParserCorrectCmdsTest : public ::testing::Test {
 public:
     uart_LineBuffer lineBuffer{};
     uart_measParams measParams{
-        .numMeas = 1U,
+        .repeat = 1U,
         .dataSize = 2U,
         .direction = SEND,
         .clk_div1 = 4U,
@@ -195,7 +195,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Clk) {
     EXPECT_EQ(testDivs[1], measParams.clk_div2);
     EXPECT_EQ(testDivs[2], measParams.clk_div3);
 
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.repeat, measParams.repeat);
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
     EXPECT_EQ(defaultMeasParams.startMeas, measParams.startMeas);
@@ -211,7 +211,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Direction) {
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(RECEIVE, measParams.direction);
 
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.repeat, measParams.repeat);
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
     EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);
@@ -228,7 +228,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Start) {
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(true, measParams.startMeas);
 
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.repeat, measParams.repeat);
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
     EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
@@ -245,7 +245,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Repeat) {
 
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(testRep < REPETITION_UP_LIMIT ? testRep : REPETITION_UP_LIMIT,
-              measParams.numMeas);
+              measParams.repeat);
 
     EXPECT_EQ(defaultMeasParams.dataSize, measParams.dataSize);
     EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
@@ -271,7 +271,7 @@ TEST_F(uartLineParserCorrectCmdsTest, Datasize) {
     EXPECT_EQ(PARSE_OK, ret);
     EXPECT_EQ(testSize, measParams.dataSize);
 
-    EXPECT_EQ(defaultMeasParams.numMeas, measParams.numMeas);
+    EXPECT_EQ(defaultMeasParams.repeat, measParams.repeat);
     EXPECT_EQ(defaultMeasParams.direction, measParams.direction);
     EXPECT_EQ(defaultMeasParams.clk_div1, measParams.clk_div1);
     EXPECT_EQ(defaultMeasParams.clk_div2, measParams.clk_div2);

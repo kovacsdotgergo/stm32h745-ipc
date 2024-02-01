@@ -14,37 +14,45 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     HAL_EXTI_D1_ClearFlag(MB2TO1_GPIO_PIN);
     break;
   default:
-    ErrorHandler();
+    assert(false);
     break;
   }
 }
 
 // todo seperate files for the measurement task ==========================
 // todo forward declare the static functions and define them under the meas task
-
-static void printUartMeasTask(const char* msg) {
-  // todo
-  // uart transmit
-  // - with max delay waits in while loop
-  // - only returns then with ok
+// todo define the uart channel in the header
+/**
+ * @brief Prints the given number of characters from the string with 
+ *  blocking wait
+*/
+static void printNUart(const char* msg, size_t len) {
+  // transmit with max delay waits in a loop and only returns ok
+  HAL_StatusTypeDef status 
+    = HAL_UART_Transmit(&huart3, 
+                        (const uint8_t*)msg, len,
+                        HAL_MAX_DELAY);
+  assert(status == HAL_OK);
 }
-
-static char scanUartMeasTask() {
-  // todo
-  // same as print
-}
-
 
 /**
- * @brief Echos the input characters, currently blocking
+ * @brief Print a null-terminated string with blocking wait
 */
-void echoInput(char input) {
-  if (input == '\r') {
-    HAL_UART_Transmit(&huart3, (unsigned char*)"\r\n", 2, HAL_MAX_DELAY);
-  }
-  else {
-    HAL_UART_Transmit(&huart3, (unsigned char*)&input, 1, HAL_MAX_DELAY);
-  }
+static void printUart(const char* msg) {
+  printNUart(msg, strlen(msg));
+}
+
+/**
+ * @brief Read a character with blocking wait
+*/
+static char getcharUart(void) {
+  uint8_t uartInput;
+  HAL_StatusTypeDef receiveSuccess
+    = HAL_UART_Receive(&huart3,
+                       &uartInput, sizeof(uartInput),
+                       HAL_MAX_DELAY);
+  assert(receiveSuccess == HAL_OK); // max delay can only return with ok
+  return (char)uartInput;
 }
 
 /** 
@@ -61,28 +69,20 @@ static void processUartControl(uart_measParams* uartParams) {
     uart_LineBuffer lineBuffer;
     uart_initLineBuffer(&lineBuffer);
 
-    HAL_UART_Transmit(&huart3, (unsigned char*)uart_getPrompt(), PROMPT_STR_LEN, HAL_MAX_DELAY);
+    printNUart(uart_getPrompt(), PROMPT_STR_LEN);
     do {
       // Blocking wait for UART, processing by single characters
-      uint8_t uartInput;
-      HAL_StatusTypeDef receiveSuccess;
-      receiveSuccess = HAL_UART_Receive(&huart3, &uartInput,
-          sizeof(uartInput), HAL_MAX_DELAY);
-      if (receiveSuccess != HAL_OK) {
-        // todo handle error in status
-        assert(false);
-      }
+      uint8_t uartInput = getcharUart();
       
       const char* echo = NULL;
       bufferStatus = uart_addCharToBuffer(uartInput, &lineBuffer, &echo);
       
       if (echo != NULL) {
-        HAL_UART_Transmit(&huart3, (const unsigned char*)echo, strlen(echo), HAL_MAX_DELAY);
+        printUart(echo);
       }
 
       if (bufferStatus == BUFFER_OVERFLOW) {
-        // todo print overflow message
-        HAL_UART_Transmit(&huart3, (const unsigned char*)"\r\nInput buffer overflow\r\n", 24, HAL_MAX_DELAY);
+        printUart("\r\nInput buffer overflow\r\n");
         uart_clearLineBuffer(&lineBuffer);
       }
     } while (bufferStatus != BUFFER_DONE);
@@ -93,13 +93,13 @@ static void processUartControl(uart_measParams* uartParams) {
       switch (uartControlStatus)
       {
       case PARSE_COMMAND_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Command parsing error\r\n", 24, HAL_MAX_DELAY);
+        printUart("Command parsing error\r\n");
         break;
       case PARSE_ARG_NUM_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument number error while parsing\r\n", 38, HAL_MAX_DELAY);
+        printUart("Argument number error while parsing\r\n");
         break;
       case PARSE_ARG_VAL_ERR:
-        HAL_UART_Transmit(&huart3, (unsigned char*)"Argument value error while parsing\r\n", 37, HAL_MAX_DELAY);
+        printUart("Argument value error while parsing\r\n");
         break;
       case PARSE_OK:
         break;
@@ -109,8 +109,7 @@ static void processUartControl(uart_measParams* uartParams) {
       }
 
       if (msg != NULL) {
-        size_t msglen = strlen(msg);
-        HAL_UART_Transmit(&huart3, (unsigned char*)msg, msglen, HAL_MAX_DELAY);
+        printUart(msg);
       }
 
   } while (!uartParams->startMeas);
@@ -125,7 +124,7 @@ static void prepareMeasParams(uart_measParams params) {
   ctrl_setDataSize(params.dataSize); /* Sharing the meas parameters */
   ctrl_setDirection((params.direction == SEND) ? M7_SEND : M7_RECIEVE);
   // setup what is needed e.g. clk, memory buffer selection
-  ClkErr err = ctrl_setupClk(params.clk_m7, params.clk_m4);
+  ClkErr err = ctrl_setupClk(params.clkM7, params.clkM4);
   assert(err == CLK_OK); // params already validated
 }
 
@@ -138,20 +137,20 @@ void core1MeasurementTask( void *pvParameters ){
   uint8_t uartOutputBuffer[32];
   endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function
   
-  HAL_UART_Transmit(&huart3, (unsigned char*)uart_getInitStr(), INIT_STR_LEN, HAL_MAX_DELAY);
-
+  printNUart(uart_getInitStr(), INIT_STR_LEN);
+  
   for( ;; )
   {
     processUartControl(&uartParams);
 
     prepareMeasParams(uartParams); // share with the other core
-    //todo tmp echo
+    //todo tmp echo of clks below 
     uint32_t m4clk, m7clk;
     ctrl_getClks(&m7clk, &m4clk);
     sprintf((char*)uartOutputBuffer, "m7: %lu m4: %lu\r\n", m7clk, m4clk);
-    HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen((char*)uartOutputBuffer), HAL_MAX_DELAY);
+    printUart((char*)uartOutputBuffer);
 
-    for(uint32_t i = 0; i < uartParams.numMeas; ++i){
+    for(uint32_t i = 0; i < uartParams.repeat; ++i){
       /* Signaling to the other core*/
       generateInterruptIPC_startMeas(); // todo signalPartner func
       /* Waiting for message or sending message */
@@ -174,7 +173,7 @@ void core1MeasurementTask( void *pvParameters ){
       uint32_t runTime = time_getRuntime(localOffset);
       memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
       sprintf((char*)uartOutputBuffer, "%lu\r\n", runTime);
-      HAL_UART_Transmit(&huart3, uartOutputBuffer, strlen((char*)uartOutputBuffer), HAL_MAX_DELAY);
+      printUart((char*)uartOutputBuffer);
     }
   }
 }

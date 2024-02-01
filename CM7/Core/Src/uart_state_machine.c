@@ -1,11 +1,11 @@
 #include "uart_state_machine.h"
 
 void uart_initUartMeasParams(uart_measParams* measParams) {
-    measParams->numMeas = 1;
+    measParams->repeat = 1;
     measParams->dataSize = DATASIZE_LOW_LIMIT;
     measParams->direction = SEND;
-    measParams->clk_m7 = 1; // todo meaningful init
-    measParams->clk_m4 = 1;
+    measParams->clkM7 = 1; // todo meaningful init
+    measParams->clkM4 = 1;
     measParams->startMeas = false;
 }
 
@@ -158,8 +158,8 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     size_t cursor = 0;
     cursor += addStrToBuf(&msgBuf[cursor], "Current value of parameters:");
 
-    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* numMeas: ");
-    cursor += strn_utostrn(uartParams->numMeas, 
+    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* repeat: ");
+    cursor += strn_utostrn(uartParams->repeat, 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
 
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* dataSize: ");
@@ -170,11 +170,11 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     cursor += addStrToBuf(&msgBuf[cursor],
                           uart_measDirectionToStr(uartParams->direction));
 
-    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* m7 clk [MHz]: ");
-    cursor += strn_utostrn(uartParams->clk_m7, 
+    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* m7 clk [Hz]: ");
+    cursor += strn_utostrn(uartParams->clkM7, 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
-    cursor += addStrToBuf(&msgBuf[cursor], ", m4 clk [MHz]: ");
-    cursor += strn_utostrn(uartParams->clk_m4, 
+    cursor += addStrToBuf(&msgBuf[cursor], ", m4 clk [Hz]: ");
+    cursor += strn_utostrn(uartParams->clkM4, 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n");
 
@@ -248,12 +248,12 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
         assert(false);
     }
 
-    uartParams->clk_m7 = clks[0];
-    uartParams->clk_m4 = clks[1];
+    uartParams->clkM7 = clks[0];
+    uartParams->clkM4 = clks[1];
     return PARSE_OK;
 }
 
-/** @brief Parses the argument tokens, then sets the numMeas field of the
+/** @brief Parses the argument tokens, then sets the repeat field of the
  *  uartParams */
 uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
                                      size_t toklens[MAX_ARG_NUM],
@@ -271,7 +271,7 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
         *msg = "Repetition saturated to upper limit\r\n";
         count = REPETITION_UP_LIMIT;
     }
-    uartParams->numMeas = count;
+    uartParams->repeat = count;
     return PARSE_OK;
 }
 
