@@ -1,18 +1,5 @@
 #include "uart_commands.h"
 
-void uart_initUartMeasParams(uart_measParams* measParams) {
-    measParams->repeat = 1;
-    measParams->dataSize = DATASIZE_LOW_LIMIT;
-    measParams->direction = SEND;
-    measParams->clkM7 = 1; // todo meaningful init
-    measParams->clkM4 = 1;
-    measParams->startMeas = false;
-}
-
-void uart_clearUartMeasParams(uart_measParams* measParams) {
-    measParams->startMeas = false;
-}
-
 void uart_initLineBuffer(uart_LineBuffer* lineBuffer) {
     lineBuffer->len = 0;
 }
@@ -34,7 +21,8 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
     if (uartInput == PUTTY_DEL) { // delete last char on backspace
         if (0 < lineBuffer->len) {
             --lineBuffer->len;
-            *echo = PUTTY_DEL;
+            echoBuf[0] = PUTTY_DEL;
+            *echo = echoBuf;
         }
         return BUFFER_OK;
     }
@@ -95,9 +83,9 @@ static uart_parseStatus getArgTokens(const char* args, size_t len,
 }
 
 uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
-                                  uart_measParams* uartParams,
+                                  const uart_controlIf* controlFuns,
                                   const char** msg){
-    assert(lineBuffer != NULL && uartParams != NULL && msg != NULL);
+    assert(lineBuffer != NULL && controlFuns != NULL && msg != NULL);
     *msg = NULL;
 
     size_t cmdlen;
@@ -126,7 +114,7 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
             }
 
             // processing the tokens
-            return cmds[i].parseArgFun(toks, toklens, uartParams, msg);
+            return cmds[i].parseArgFun(toks, toklens, controlFuns, msg);
         }
     }
     // no command matches
@@ -142,9 +130,9 @@ static char msgBuf[MAX_MSG_LEN];
 */
 uart_parseStatus uart_parseHelpCmd(const char* toks[MAX_ARG_NUM],
                                    size_t toklens[MAX_ARG_NUM],
-                                   uart_measParams* uartParams,
+                                   const uart_controlIf* controlFuns,
                                    const char** msg) {
-    (void)toks; (void)toklens; (void)uartParams;
+    (void)toks; (void)toklens; (void)controlFuns;
     *msg = uart_getHelpStr();
     return PARSE_OK;
 }
@@ -152,30 +140,30 @@ uart_parseStatus uart_parseHelpCmd(const char* toks[MAX_ARG_NUM],
 /** @brief Sets msg to a buffer with the current parameter values */
 uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
-                                        uart_measParams* uartParams,
+                                        const uart_controlIf* controlFuns,
                                         const char** msg) {
     (void)toks; (void)toklens;
     size_t cursor = 0;
     cursor += addStrToBuf(&msgBuf[cursor], "Current value of parameters:");
 
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* repeat: ");
-    cursor += strn_utostrn(uartParams->repeat, 
+    cursor += strn_utostrn(controlFuns->getRepeat(), 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
 
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* dataSize: ");
-    cursor += strn_utostrn(uartParams->dataSize, 
+    cursor += strn_utostrn(controlFuns->getDataSize(), 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
 
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* direction: ");
     cursor += addStrToBuf(&msgBuf[cursor],
-                          uart_measDirectionToStr(uartParams->direction));
+                          params_measDirectionToStr(controlFuns->getDirection()));
 
+    uint32_t clkM7, clkM4;
+    controlFuns->getClks(&clkM7, &clkM4);
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* m7 clk [Hz]: ");
-    cursor += strn_utostrn(uartParams->clkM7, 
-                      &msgBuf[cursor], MAX_MSG_LEN - cursor);
+    cursor += strn_utostrn(clkM7, &msgBuf[cursor], MAX_MSG_LEN - cursor);
     cursor += addStrToBuf(&msgBuf[cursor], ", m4 clk [Hz]: ");
-    cursor += strn_utostrn(uartParams->clkM4, 
-                      &msgBuf[cursor], MAX_MSG_LEN - cursor);
+    cursor += strn_utostrn(clkM4, &msgBuf[cursor], MAX_MSG_LEN - cursor);
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n");
 
     msgBuf[cursor++] = '\0';
@@ -185,33 +173,35 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Sets the start field of the uartParams */
+/** @brief Sets the start field of the controlFuns */
 uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
                                     size_t toklens[MAX_ARG_NUM],
-                                    uart_measParams* uartParams,
+                                    const uart_controlIf* controlFuns,
                                     const char** msg) {
     (void)toks; (void)toklens;
     // signal start of meas
-    uartParams->startMeas = true;
+    controlFuns->setStartMeas();
     *msg = NULL;
     return PARSE_OK;
 }
 
 /** @brief Parses the argument tokens, then sets the direction field of the
- *      uartParams */
+ *      controlFuns */
 uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
-                                        uart_measParams* uartParams,
+                                        const uart_controlIf* controlFuns,
                                         const char** msg) {
     *msg = NULL;
     // string arg options
     if (strn_exactMatch("send", toks[0], toklens[0])
             || strn_exactMatch("s", toks[0], toklens[0])) {
-        uartParams->direction = SEND;
+        bool success = controlFuns->setDirection(M7_SEND, msg);
+        assert(success);
     }
     else if (strn_exactMatch("receive", toks[0], toklens[0])
              || strn_exactMatch("r", toks[0], toklens[0])) {
-        uartParams->direction = RECEIVE;
+        bool success = controlFuns->setDirection(M7_RECEIVE, msg);
+        assert(success);
     }
     else {
         return PARSE_ARG_VAL_ERR;
@@ -221,10 +211,10 @@ uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
 }
 
 /** @brief Parses the argument tokens, then sets the clk fields of the 
- *  uartParams */
+ *  controlFuns */
 uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
                                   size_t toklens[MAX_ARG_NUM],
-                                  uart_measParams* uartParams,
+                                  const uart_controlIf* controlFuns,
                                   const char** msg) {
     *msg = NULL;
     // convert the args
@@ -235,29 +225,17 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
         }
     }
 
-    ClkErr err = ctrl_validateClks(clks[0], clks[1]);
-    if (err == CLK_M7_ERR) {
-        *msg = "Invalid m7 clk frequency\r\n";
+    if (!controlFuns->setClks(clks[0], clks[1], msg)) {
         return PARSE_ARG_VAL_ERR;
     }
-    else if (err == CLK_M4_ERR) {
-        *msg = "Invalid m4 clk frequency\r\n";
-        return PARSE_ARG_VAL_ERR;
-    }
-    else if (err != CLK_OK) {
-        assert(false);
-    }
-
-    uartParams->clkM7 = clks[0];
-    uartParams->clkM4 = clks[1];
     return PARSE_OK;
 }
 
 /** @brief Parses the argument tokens, then sets the repeat field of the
- *  uartParams */
+ *  controlFuns */
 uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
                                      size_t toklens[MAX_ARG_NUM],
-                                     uart_measParams* uartParams,
+                                     const uart_controlIf* controlFuns,
                                      const char** msg) {
     *msg = NULL;
     // arg conversion from string
@@ -266,20 +244,17 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
         return PARSE_ARG_VAL_ERR;
     }
 
-    // validating the argument
-    if (REPETITION_UP_LIMIT < count) {
-        *msg = "Repetition saturated to upper limit\r\n";
-        count = REPETITION_UP_LIMIT;
+    if(!controlFuns->setRepeat(count, msg)) {
+        return PARSE_ARG_VAL_ERR;
     }
-    uartParams->repeat = count;
     return PARSE_OK;
 }
 
 /** @brief Parses the argument tokens, then sets the datasize field of 
- *  uartParams */
+ *  controlFuns */
 uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
                                        size_t toklens[MAX_ARG_NUM],
-                                       uart_measParams* uartParams,
+                                       const uart_controlIf* controlFuns,
                                        const char** msg) {    
     *msg = NULL;
     // arg conversion from string
@@ -288,14 +263,8 @@ uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
         return PARSE_ARG_VAL_ERR;
     }
 
-    if (DATASIZE_UP_LIMIT < datasize) {
-        *msg = "Datasize saturated to upper limit\r\n";
-        datasize = DATASIZE_UP_LIMIT;
+    if (!controlFuns->setDataSize(datasize, msg)) {
+        return PARSE_ARG_VAL_ERR;
     }
-    else if (datasize < DATASIZE_LOW_LIMIT) {
-        *msg = "Datasize saturated to lower limit\r\n";
-        datasize = DATASIZE_LOW_LIMIT;
-    }
-    uartParams->dataSize = datasize;
     return PARSE_OK;
 }

@@ -24,9 +24,13 @@ void ctrl_generateInterruptIPC_startMeas(void){
     generateIT_IPC(START_MEAS_INT_EXTI_LINE);
 }
 
+/** 
+ * @brief Returns the corresponding latency value 
+ * @param[in] m4clk M4 core clock in [Hz]
+ * @note assumes that m4 clock is the same as the AXI bus freq
+*/
 static uint32_t getVOS0FlashLatency(uint32_t m4clk) {
     // todo assert v0 supply
-    // m4 clk is the same as the AXI bus frequency
     uint32_t latency;
     if (m4clk <= VOS0_0WS_MAX_AXI_CLK) { // Hz
         latency = FLASH_LATENCY_0;
@@ -48,6 +52,12 @@ static uint32_t getVOS0FlashLatency(uint32_t m4clk) {
     }
     return latency;
 }
+
+typedef enum {
+    CLK_M7_ERR,
+    CLK_M4_ERR,
+    CLK_OK,
+} ClkErr;
 
 /**
  * @brief Sets the clk divider values based on the desired core frequencies
@@ -89,13 +99,22 @@ static ClkErr getClkDivs(uint32_t sysclk, uint32_t m7clk, uint32_t m4clk,
     return CLK_OK;
 }
 
-ClkErr ctrl_setupClk(uint32_t m7clk, uint32_t m4clk) {
+bool ctrl_setClks(uint32_t m7clk, uint32_t m4clk, const char** msg) {
     uint32_t sysclk = HAL_RCC_GetSysClockFreq(); // returns the freq before the d1cpre presclaer
     uint32_t d1cpre, hpre;
     // new clk divider and latency values based on the desired clk freq
     ClkErr status = getClkDivs(sysclk, m7clk, m4clk, &d1cpre, &hpre);
     if (status != CLK_OK) {
-        return status;
+        if (status == CLK_M7_ERR) {
+            if (msg != NULL) *msg = "Invalid m7 clk frequency\r\n";
+        }
+        else if (status == CLK_M4_ERR) {
+            if (msg != NULL) *msg = "Invalid m4 clk frequency\r\n";
+        }
+        else {
+            assert(false); // missing error value
+        }
+        return false;
     }
     uint32_t flatency = getVOS0FlashLatency(m4clk);
 
@@ -110,7 +129,7 @@ ClkErr ctrl_setupClk(uint32_t m7clk, uint32_t m4clk) {
     HAL_StatusTypeDef ret 
         = HAL_RCC_ClockConfig(&config, flatency);
     assert(ret == HAL_OK);
-    return CLK_OK;
+    return true;
 }
 
 /**
@@ -123,12 +142,6 @@ static uint32_t getM7ClkFreq(void) {
 }
 
 void ctrl_getClks(uint32_t* m7clk, uint32_t* m4clk) {
- 
     if (m7clk != NULL) *m7clk = getM7ClkFreq(); // freq after the d1cpre prescaler
     if (m4clk != NULL) * m4clk = HAL_RCC_GetHCLKFreq(); // freq after the HPRE prescaler
-}
-
-ClkErr ctrl_validateClks(uint32_t m7clk, uint32_t m4clk) {
-    uint32_t sysclk = HAL_RCC_GetSysClockFreq();
-    return getClkDivs(sysclk, m7clk, m4clk, NULL, NULL);
 }

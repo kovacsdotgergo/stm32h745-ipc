@@ -72,7 +72,7 @@ TEST(uartLineParserTest, EmptyLine) {
     for (size_t i = 0; i < lineBuffer.len; ++i) {
         lineBuffer.buffer[i] = cmd[i];
     }
-    uart_measParams measParams;
+    uart_controlIf measParams;
     const char* msg = NULL;
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
@@ -93,7 +93,7 @@ TEST(uartLineParserTest, CmdAtTheEnd) {
     for (size_t j = 0; i < LINE_BUFFER_LEN; ++i, ++j) {
         lineBuffer.buffer[i] = cmd[j];
     }
-    uart_measParams measParams;
+    uart_controlIf measParams;
     const char* msg = NULL;
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
@@ -109,7 +109,7 @@ TEST(uartLineParserTest, InvalidCmd) {
     for (size_t i = 0; i < lineBuffer.len; ++i) {
         lineBuffer.buffer[i] = cmd[i];
     }
-    uart_measParams measParams;
+    uart_controlIf measParams;
     const char* msg = NULL;
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
@@ -126,7 +126,7 @@ TEST(uartLineParserTest, WrongNumOfArgs) {
     for (size_t i = 0; i < lineBuffer.len; ++i) {
         lineBuffer.buffer[i] = cmd[i];
     }
-    uart_measParams measParams;
+    uart_controlIf measParams;
     const char* msg = NULL;
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
@@ -142,7 +142,7 @@ TEST(uartLineParserTest, InvalidArg) {
     for (size_t i = 0; i < lineBuffer.len; ++i) {
         lineBuffer.buffer[i] = cmd[i];
     }
-    uart_measParams measParams;
+    uart_controlIf measParams;
     const char* msg = NULL;
 
     auto ret = uart_parseBuffer(&lineBuffer, &measParams, &msg);
@@ -153,7 +153,7 @@ TEST(uartLineParserTest, InvalidArg) {
 class uartLineParserCorrectCmdsTest : public ::testing::Test {
 public:
     uart_LineBuffer lineBuffer{};
-    uart_measParams measParams{
+    uart_controlIf measParams{
         .repeat = 1U,
         .dataSize = 2U,
         .direction = SEND,
@@ -162,7 +162,7 @@ public:
         .clk_div3 = 32U,
         .startMeas = false,
     };
-    const uart_measParams defaultMeasParams{measParams};
+    const uart_controlIf defaultMeasParams{measParams};
     const char* msg{NULL};
 
     void setupCmd(const char* cmd, size_t cmdlen) {

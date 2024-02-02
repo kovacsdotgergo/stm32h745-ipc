@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include "string_n.h"
-#include "meas_control.h" // to validate clocks
+#include "shared_param_types.h"
 
 #define LINE_BUFFER_LEN 64
 #define CMD_DELIMITERS " \t"
@@ -19,12 +19,6 @@
 #define PUTTY_DEL 127
 #define PUTTY_SENDS_NEW_LINE '\r'
 #define PUTTY_PRINTS_NEW_LINE "\r\n"
-
-#define REPETITION_UP_LIMIT 2048 // todo limit
-
-#define DATASIZE_UP_LIMIT 16376
-#define DATASIZE_LOW_LIMIT 1
-static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
 
 // X macro for commands
 // X(command, capital command, arg num, help string)
@@ -63,17 +57,12 @@ typedef union {
 
 #define INIT_STR "\r\nIPC performance measurement application for FreeRTOS" \
                     " Message Buffers\r\n\n" \
-                 "Backspace is supported when typing in commands\r\n\n"
+                 "Backspace is supported when typing in commands\r\n\n" \
                  HELP_STR // todo possibly hal, freertos version
 #define INIT_STR_LEN (sizeof(INIT_STR) - 1)
 
 #define PROMPT_STR "> "
 #define PROMPT_STR_LEN (sizeof(PROMPT_STR) - 1)
-
-typedef enum{
-    SEND,
-    RECEIVE,
-} uart_measDirection;
 
 typedef enum {
     BUFFER_OVERFLOW,
@@ -88,21 +77,19 @@ typedef enum { // todo could merge with the buffer errors
     PARSE_OK,
 } uart_parseStatus;
 
-typedef struct {
-    uint32_t repeat;
-    uint32_t dataSize;
-    uart_measDirection direction;
-    uint32_t clkM7;
-    uint32_t clkM4;
-    bool startMeas;
+typedef struct { // NOTE: the functions return true on success, false otherwise
+    bool (*setClks)(uint32_t clkM7, uint32_t clkM4, const char** msg);
+    void (*getClks)(uint32_t* clkM7, uint32_t* clkM4);
+    bool (*setDataSize)(uint32_t datasize, const char** msg);
+    uint32_t (*getDataSize)(void);
+    bool (*setRepeat)(uint32_t repeat, const char** msg);
+    uint32_t (*getRepeat)(void);
+    bool (*setDirection)(params_direction direction, const char** msg);
+    params_direction (*getDirection)(void);
+    void (*setStartMeas)(void);
     // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target
-    // todo getparams to print
-} uart_measParams;
-
-typedef struct {
-    clkerr
-} uart_execCmdFuncs;
+} uart_controlIf;
 
 typedef struct {
     char buffer[LINE_BUFFER_LEN];
@@ -114,7 +101,7 @@ typedef struct {
     const uint32_t arg_num;
     uart_parseStatus (*parseArgFun)(const char* args[MAX_ARG_NUM],
                                     size_t len[MAX_ARG_NUM],
-                                    uart_measParams* uartParams,
+                                    const uart_controlIf* controlFuns,
                                     const char** msg);
 } uart_Command;
 
@@ -131,18 +118,6 @@ static inline const char* uart_getInitStr(void) {
 /** @brief Returns the help string for the UART commands */
 static inline const char* uart_getHelpStr(void) {
     return HELP_STR;
-}
-
-/** @brief Initializes the structure to the default values */
-void uart_initUartMeasParams(uart_measParams* measParams);
-
-/** @brief Clears some of the the values to prepare for the next parse */
-void uart_clearUartMeasParams(uart_measParams* measParams);
-
-/** @returns The string equivalent for the enum */
-static inline const char* uart_measDirectionToStr(uart_measDirection dir) {
-    assert(dir == SEND || dir == RECEIVE);
-    return dir == SEND ? "M7 send" : "M7 receive";
 }
 
 /** @brief Initializes the buffer to the default values */
@@ -172,7 +147,7 @@ uart_BufferStatus uart_addCharToBuffer(char uartInput,
  * @returns false if the parsing failed
 */
 uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
-                                  uart_measParams* uartParams,
+                                  const uart_controlIf* controlFuns,
                                   const char** msg);
 
 // function definition for each parsing function 
@@ -180,7 +155,7 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
     uart_parseStatus \
     uart_parse##cap##Cmd( \
         const char* toks[MAX_ARG_NUM], size_t toklens[MAX_ARG_NUM], \
-        uart_measParams* uartParams, const char** msg);
+        const uart_controlIf* controlFuns, const char** msg);
 COMMANDS(X_TO_TOKENIZE_FUN_DECL)
 
 #endif /* UART_COMMANDS_H */
