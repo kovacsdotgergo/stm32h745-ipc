@@ -39,7 +39,7 @@ bool strn_strntou(const char* str, size_t len, uint32_t* res) {
     return true;
 }
 
-// todo could changet to strchr(const char*str, int ch) (returns NULL when not found)
+// todo could change to strchr(const char*str, int ch) (returns NULL when not found)
 /**
  * @brief returns if the char is in the null-terminated string
 */

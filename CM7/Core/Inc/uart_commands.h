@@ -1,9 +1,6 @@
 #ifndef UART_COMMANDS_H
 #define UART_COMMANDS_H
-// todo possible refactor: the command set the parameters, using function
-//  pointers to cntrl, starting a measurement is only the intercore 
-//  interrupt, because the system is already set up
-// this way no duplication of the parameter validation logic is needed 
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -31,7 +28,6 @@
     X(repeat, Repeat, 1, "repeat <num>: sets the repetition count of the measurement, can be saturated") \
     X(datasize, Datasize, 1, "datasize <size>: sets the size of the measured message, can be saturated")
     // todo add reset
-    // todo add help
 
 // maximum of the arg num parameter, char always has the strictest alignment (1)
 #define X_TO_MAX_ARGNUM_UNION(command, cap, num, help) uint8_t command[num];
@@ -70,7 +66,7 @@ typedef enum {
     BUFFER_OK,
 } uart_BufferStatus;
 
-typedef enum { // todo could merge with the buffer errors
+typedef enum {
     PARSE_COMMAND_ERR,
     PARSE_ARG_NUM_ERR,
     PARSE_ARG_VAL_ERR,

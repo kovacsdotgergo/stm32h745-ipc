@@ -131,12 +131,6 @@ void meastask_core1MeasurementTask( void *pvParameters ){
     {
         processUartControl(&controlFuns);
 
-        //todo tmp echo of clks below 
-        uint32_t m4clk, m7clk;
-        ctrl_getClks(&m7clk, &m4clk);
-        sprintf((char*)uartOutputBuffer, "m7: %lu m4: %lu\r\n", m7clk, m4clk);
-        printUart((char*)uartOutputBuffer);
-
         for(uint32_t i = 0; i < controlFuns.getRepeat(); ++i){
             /* Signaling to the other core*/
             ctrl_generateInterruptIPC_startMeas(); // todo signalPartner func
