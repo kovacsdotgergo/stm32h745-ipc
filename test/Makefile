@@ -1,4 +1,4 @@
-.PHONY: test all clean setup tmp_test
+.PHONY: test all clean setup
 
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g3
@@ -15,7 +15,7 @@ INLCUDE += -I$(WORKSPACE)/Common/Inc/
 CM7_SRC_DIR = $(WORKSPACE)/CM7/Core/Src
 COMMON_SRC_DIR = $(WORKSPACE)/Common/Src
 
-CM7_SRCS = $(CM7_SRC_DIR)/uart_state_machine.c
+CM7_SRCS = $(CM7_SRC_DIR)/uart_commands.c
 CM7_BUILD_DIR = $(BUILD_DIR)/CM7
 COMMON_SRCS = $(COMMON_SRC_DIR)/string_n.c
 COMMON_BUILD_DIR = $(BUILD_DIR)/Common
@@ -60,9 +60,3 @@ setup:
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(CM7_BUILD_DIR)
 	mkdir -p $(COMMON_BUILD_DIR)
-
-tmp_test: $(CM7_SRCS) $(COMMON_SRCS)
-	@echo $(CM7_SRCS) $(COMMON_SRCS)
-	@echo 
-	@echo $(addprefix $(BUILD_DIR)/Common/,$(notdir $(COMMON_SRCS:.c=.o)))
-	

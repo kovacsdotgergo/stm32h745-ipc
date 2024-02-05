@@ -143,6 +143,10 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
                                         const uart_controlIf* controlFuns,
                                         const char** msg) {
     (void)toks; (void)toklens;
+    assert(controlFuns->getRepeat != NULL
+           && controlFuns->getDataSize != NULL
+           && controlFuns->getDirection != NULL
+           && controlFuns->getClks != NULL);
     size_t cursor = 0;
     cursor += addStrToBuf(&msgBuf[cursor], "Current value of parameters:");
 
@@ -179,6 +183,7 @@ uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
                                     const uart_controlIf* controlFuns,
                                     const char** msg) {
     (void)toks; (void)toklens;
+    assert(controlFuns->setStartMeas != NULL);
     // signal start of meas
     controlFuns->setStartMeas();
     *msg = NULL;
@@ -191,6 +196,7 @@ uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
                                         const uart_controlIf* controlFuns,
                                         const char** msg) {
+    assert(controlFuns->setDirection != NULL);
     *msg = NULL;
     // string arg options
     if (strn_exactMatch("send", toks[0], toklens[0])
@@ -216,6 +222,7 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
                                   size_t toklens[MAX_ARG_NUM],
                                   const uart_controlIf* controlFuns,
                                   const char** msg) {
+    assert(controlFuns->setClks != NULL);
     *msg = NULL;
     // convert the args
     uint32_t clks[2];
@@ -237,6 +244,7 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
                                      size_t toklens[MAX_ARG_NUM],
                                      const uart_controlIf* controlFuns,
                                      const char** msg) {
+    assert(controlFuns->setRepeat != NULL);
     *msg = NULL;
     // arg conversion from string
     uint32_t count;
@@ -256,6 +264,7 @@ uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
                                        size_t toklens[MAX_ARG_NUM],
                                        const uart_controlIf* controlFuns,
                                        const char** msg) {    
+    assert(controlFuns->setDataSize != NULL);
     *msg = NULL;
     // arg conversion from string
     uint32_t datasize;
