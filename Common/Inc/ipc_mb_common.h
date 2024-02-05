@@ -6,15 +6,10 @@
 
 #include "stm32h7xx_hal.h"
 
-#include "stdint.h"
+#include <stdint.h>
 
 #include "meas_control_common.h"
-
-#define mbaTASK_MESSAGE_BUFFER_SIZE ( 16384 )
-#define mbaCONTROL_MESSAGE_BUFFER_SIZE ( 24 )
-
-/* Maximum size for the messages */
-#define MAX_DATA_SIZE (16376)
+#include "mb_config.h"
 
 #define MB2TO1_INT_EXTI_IRQ EXTI4_IRQn
 #define MB2TO1_INT_EXTI_LINE EXTI_LINE4
@@ -39,7 +34,9 @@ extern volatile StaticStreamBuffer_t xStreamBufferStruct[4];
 extern volatile uint8_t ucStorageBuffer_ctrl[2][ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
 extern volatile uint8_t ucStorageBuffer[2][ mbaTASK_MESSAGE_BUFFER_SIZE ];
 
+/** @brief Triggers interrupt used for IPC message buffer communication */
 void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
+/** @brief Message Buffer functionality, receiving message */
 void interruptHandlerIPC_messageBuffer( void );
 
 #endif /* IPC_MB_COMMON_H */

@@ -37,7 +37,7 @@ void core2MeasurementTask( void *pvParameters )
     case M7_SEND: /* m7 sends, this core recieves */
       app_measureCore2Recieving();
       break;
-    case M7_RECIEVE:
+    case M7_RECEIVE:
       app_measureCore2Sending(ctrl_getDataSize());
       break;
     default:
@@ -50,7 +50,7 @@ void core2MeasurementTask( void *pvParameters )
 void app_measureCore2Recieving(void){
   static uint8_t ulNextValue = 0;
   uint32_t xReceivedBytes, sizeFromMessage;
-  static uint8_t recieveBuffer[ MAX_DATA_SIZE ];
+  static uint8_t recieveBuffer[ MB_MAX_DATA_SIZE ];
 
   xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[MB1TO2_IDX],
                                           recieveBuffer,
@@ -71,7 +71,7 @@ void app_measureCore2Recieving(void){
 }
 
 void app_measureCore2Sending(uint32_t dataSize){
-  static char sendBuffer[MAX_DATA_SIZE];
+  static char sendBuffer[MB_MAX_DATA_SIZE];
   static uint8_t nextValue = 0;
   for (uint32_t j = 0; j < dataSize; ++j){
     sendBuffer[j] = nextValue;
