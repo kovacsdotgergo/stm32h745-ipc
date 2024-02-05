@@ -10,7 +10,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
     ctrl_interruptHandlerIPC_endMeas();
     break;
   case MB2TO1_GPIO_PIN:
-    interruptHandlerIPC_messageBuffer();
+    mb_interruptHandlerIPC_messageBuffer();
     HAL_EXTI_D1_ClearFlag(MB2TO1_GPIO_PIN);
     break;
   default:

@@ -10,12 +10,13 @@ C_SRCS += \
 ../Core/Src/ipc_mb.c \
 ../Core/Src/main.c \
 ../Core/Src/meas_control.c \
+../Core/Src/meas_task.c \
 ../Core/Src/stm32h7xx_hal_msp.c \
 ../Core/Src/stm32h7xx_hal_timebase_tim.c \
 ../Core/Src/stm32h7xx_it.c \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
-../Core/Src/uart_state_machine.c 
+../Core/Src/uart_commands.c 
 
 OBJS += \
 ./Core/Src/app.o \
@@ -23,12 +24,13 @@ OBJS += \
 ./Core/Src/ipc_mb.o \
 ./Core/Src/main.o \
 ./Core/Src/meas_control.o \
+./Core/Src/meas_task.o \
 ./Core/Src/stm32h7xx_hal_msp.o \
 ./Core/Src/stm32h7xx_hal_timebase_tim.o \
 ./Core/Src/stm32h7xx_it.o \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
-./Core/Src/uart_state_machine.o 
+./Core/Src/uart_commands.o 
 
 C_DEPS += \
 ./Core/Src/app.d \
@@ -36,12 +38,13 @@ C_DEPS += \
 ./Core/Src/ipc_mb.d \
 ./Core/Src/main.d \
 ./Core/Src/meas_control.d \
+./Core/Src/meas_task.d \
 ./Core/Src/stm32h7xx_hal_msp.d \
 ./Core/Src/stm32h7xx_hal_timebase_tim.d \
 ./Core/Src/stm32h7xx_it.d \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
-./Core/Src/uart_state_machine.d 
+./Core/Src/uart_commands.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -51,7 +54,7 @@ Core/Src/%.o Core/Src/%.su: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/app.d ./Core/Src/app.o ./Core/Src/app.su ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/ipc_mb.d ./Core/Src/ipc_mb.o ./Core/Src/ipc_mb.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/meas_control.d ./Core/Src/meas_control.o ./Core/Src/meas_control.su ./Core/Src/stm32h7xx_hal_msp.d ./Core/Src/stm32h7xx_hal_msp.o ./Core/Src/stm32h7xx_hal_msp.su ./Core/Src/stm32h7xx_hal_timebase_tim.d ./Core/Src/stm32h7xx_hal_timebase_tim.o ./Core/Src/stm32h7xx_hal_timebase_tim.su ./Core/Src/stm32h7xx_it.d ./Core/Src/stm32h7xx_it.o ./Core/Src/stm32h7xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/uart_state_machine.d ./Core/Src/uart_state_machine.o ./Core/Src/uart_state_machine.su
+	-$(RM) ./Core/Src/app.d ./Core/Src/app.o ./Core/Src/app.su ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/ipc_mb.d ./Core/Src/ipc_mb.o ./Core/Src/ipc_mb.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/meas_control.d ./Core/Src/meas_control.o ./Core/Src/meas_control.su ./Core/Src/meas_task.d ./Core/Src/meas_task.o ./Core/Src/meas_task.su ./Core/Src/stm32h7xx_hal_msp.d ./Core/Src/stm32h7xx_hal_msp.o ./Core/Src/stm32h7xx_hal_msp.su ./Core/Src/stm32h7xx_hal_timebase_tim.d ./Core/Src/stm32h7xx_hal_timebase_tim.o ./Core/Src/stm32h7xx_hal_timebase_tim.su ./Core/Src/stm32h7xx_it.d ./Core/Src/stm32h7xx_it.o ./Core/Src/stm32h7xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/uart_commands.d ./Core/Src/uart_commands.o ./Core/Src/uart_commands.su
 
 .PHONY: clean-Core-2f-Src
 

@@ -19,24 +19,54 @@
 #define MB1TO2_INT_EXTI_LINE EXTI_LINE0
 #define MB1TO2_GPIO_PIN GPIO_PIN_0
 
-#define MB1TO2_IDX 0
-#define MB2TO1_IDX 1
+#ifdef CORE_CM4
+    #define CONTROL_RECV_IDX M7_SEND
+    #define CONTROL_SEND_IDX M7_RECEIVE
+    #define DATA_RECV_IDX M7_SEND
+    #define DATA_SEND_IDX M7_RECEIVE
+
+    #define MB_SEND_EXTI_LINE MB2TO1_INT_EXTI_LINE
+#elif defined CORE_CM7
+    #define CONTROL_RECV_IDX M7_RECEIVE
+    #define CONTROL_SEND_IDX M7_SEND
+    #define DATA_RECV_IDX M7_RECEIVE
+    #define DATA_SEND_IDX M7_SEND
+
+    #define MB_SEND_EXTI_LINE MB1TO2_INT_EXTI_LINE
+#else
+#error Neither core is defined
+#endif
 
 /* A block time of 0 simply means, don't block. */
 #define mbaDONT_BLOCK 0
 
-/* Message buffers*/
-extern volatile MessageBufferHandle_t xControlMessageBuffer[2];
-extern volatile MessageBufferHandle_t xDataMessageBuffers[2];
+#define MB_STORAGE_VARIABLES_DECL(mem) \
+    extern volatile MessageBufferHandle_t \
+        mem##ControlMessageBuffers[DIRECTION_NUM]; \
+    extern volatile MessageBufferHandle_t \
+        mem##DataMessageBuffers[DIRECTION_NUM]; \
+    extern volatile StaticStreamBuffer_t \
+        mem##ControlStreamBufferStruct[DIRECTION_NUM]; \
+    extern volatile StaticStreamBuffer_t \
+        mem##DataStreamBufferStruct[DIRECTION_NUM]; \
+    extern volatile uint8_t \
+        mem##ControlStorageBuffer[DIRECTION_NUM][mbaCONTROL_MESSAGE_BUFFER_SIZE]; \
+    extern volatile uint8_t \
+        mem##DataStorageBuffer[DIRECTION_NUM][mbaTASK_MESSAGE_BUFFER_SIZE]; \
 
-extern volatile StaticStreamBuffer_t xStreamBufferStruct[4];
+// Variables used by the IPC MBs
+MB_STORAGE_VARIABLES_DECL(D1)
+MB_STORAGE_VARIABLES_DECL(D2)
+MB_STORAGE_VARIABLES_DECL(D3)
 
-extern volatile uint8_t ucStorageBuffer_ctrl[2][ mbaCONTROL_MESSAGE_BUFFER_SIZE ];
-extern volatile uint8_t ucStorageBuffer[2][ mbaTASK_MESSAGE_BUFFER_SIZE ];
+extern volatile MessageBufferHandle_t* mb_gpCurrentControlMB;
+extern volatile MessageBufferHandle_t* mb_gpCurrentDataMB;
 
 /** @brief Triggers interrupt used for IPC message buffer communication */
-void generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
+void mb_generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
 /** @brief Message Buffer functionality, receiving message */
-void interruptHandlerIPC_messageBuffer( void );
+void mb_interruptHandlerIPC_messageBuffer( void );
+/** @brief Sets the pointer to the Message Buffer in the given memory */
+void mb_setUsedMemory(params_mem mem);
 
 #endif /* IPC_MB_COMMON_H */

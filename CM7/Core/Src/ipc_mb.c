@@ -1,28 +1,28 @@
 #include "ipc_mb.h"
 
+#define MB_CREATE_STATIC(mem, purpose, index) \
+    mem##purpose##MessageBuffers[(index)] \
+        = xMessageBufferCreateStatic( \
+            mbaCONTROL_MESSAGE_BUFFER_SIZE, \
+            &mem##purpose##StorageBuffer[(index)][0], \
+            &mem##purpose##StreamBufferStruct[(index)]); \
+    configASSERT(mem##purpose##MessageBuffers[(index)] != NULL);
+
 void createIPCMessageBuffers(void) {
-    /* MBs used for m7->m4 communication */
-    /* Create control message buffer */
-    xControlMessageBuffer[MB1TO2_IDX] = xMessageBufferCreateStatic(
-        mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB1TO2_IDX], 
-        &xStreamBufferStruct[MB1TO2_IDX*2]);  
-    /* Create data message buffer */
-    xDataMessageBuffers[MB1TO2_IDX] = xMessageBufferCreateStatic(
-        mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB1TO2_IDX][0],
-        &xStreamBufferStruct[MB1TO2_IDX*2 + 1]);
-    configASSERT( xDataMessageBuffers[MB1TO2_IDX] );
-    configASSERT( xControlMessageBuffer[MB1TO2_IDX] );
+    MB_CREATE_STATIC(D1, Control, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D1, Control, CONTROL_RECV_IDX)
+    MB_CREATE_STATIC(D2, Control, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D2, Control, CONTROL_RECV_IDX)
+    MB_CREATE_STATIC(D3, Control, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D3, Control, CONTROL_RECV_IDX)
     
-    /* MBs used for m4->m7 communication */
-    xControlMessageBuffer[MB2TO1_IDX] = xMessageBufferCreateStatic(
-        mbaCONTROL_MESSAGE_BUFFER_SIZE, ucStorageBuffer_ctrl[MB2TO1_IDX], 
-        &xStreamBufferStruct[MB2TO1_IDX*2]);  
-    /* Create data message buffer */
-    xDataMessageBuffers[MB2TO1_IDX] = xMessageBufferCreateStatic(
-        mbaTASK_MESSAGE_BUFFER_SIZE, &ucStorageBuffer[MB2TO1_IDX][0],
-        &xStreamBufferStruct[MB2TO1_IDX*2 + 1]);
-    configASSERT( xDataMessageBuffers[MB2TO1_IDX] );
-    configASSERT( xControlMessageBuffer[MB2TO1_IDX] );
+    MB_CREATE_STATIC(D1, Data, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D1, Data, CONTROL_RECV_IDX)
+    MB_CREATE_STATIC(D2, Data, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D2, Data, CONTROL_RECV_IDX)
+    MB_CREATE_STATIC(D3, Data, CONTROL_SEND_IDX)
+    MB_CREATE_STATIC(D3, Data, CONTROL_RECV_IDX)
+
 }
 
 void initIPC_MessageBuffers(void) {

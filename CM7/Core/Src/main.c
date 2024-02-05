@@ -23,7 +23,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "ipc_mb_common.h"
 #include <stdio.h>
 #include <string.h>
 #include "uart_commands.h"

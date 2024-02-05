@@ -170,10 +170,10 @@ void meastask_measureCore1Sending(uint32_t dataSize){
     vTaskDelay(1/portTICK_PERIOD_MS);
     /* Start of measurement and sending the data */
     time_startTime();
-    xMessageBufferSend( xDataMessageBuffers[MB1TO2_IDX], 
-                                            ( void * ) sendBuffer,
-                                            dataSize,
-                                            mbaDONT_BLOCK );
+    xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX], 
+                       (void*)sendBuffer,
+                       dataSize,
+                       mbaDONT_BLOCK );
     
     ++nextValue;
     /* Waiting for the signal from the other core */
@@ -185,7 +185,7 @@ void meastask_measureCore1Recieving(void){
     uint32_t recievedBytes, sizeFromMessage;
     static uint8_t recieveBuffer[MB_MAX_DATA_SIZE];
 
-    recievedBytes = xMessageBufferReceive(xDataMessageBuffers[MB2TO1_IDX],
+    recievedBytes = xMessageBufferReceive(mb_gpCurrentDataMB[DATA_RECV_IDX],
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY);

@@ -9,7 +9,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   switch (GPIO_Pin)
   {
   case MB1TO2_GPIO_PIN:
-    interruptHandlerIPC_messageBuffer();
+    mb_interruptHandlerIPC_messageBuffer();
     HAL_EXTI_D2_ClearFlag(MB1TO2_INT_EXTI_LINE);
     break;
   case START_MEAS_GPIO_PIN:
@@ -52,7 +52,7 @@ void app_measureCore2Recieving(void){
   uint32_t xReceivedBytes, sizeFromMessage;
   static uint8_t recieveBuffer[ MB_MAX_DATA_SIZE ];
 
-  xReceivedBytes = xMessageBufferReceive( xDataMessageBuffers[MB1TO2_IDX],
+  xReceivedBytes = xMessageBufferReceive( mb_gpCurrentDataMB[DATA_RECV_IDX],
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY );
@@ -81,7 +81,7 @@ void app_measureCore2Sending(uint32_t dataSize){
   time_setSharedOffset();
   /* Start measurement */
   time_startTime();
-  xMessageBufferSend(xDataMessageBuffers[MB2TO1_IDX],
+  xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX],
                      (void*) sendBuffer,
                      dataSize,
                      mbaDONT_BLOCK);

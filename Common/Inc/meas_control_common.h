@@ -52,6 +52,15 @@ bool ctrl_setRepeat(uint32_t repeat, const char** msg);
 /** @brief Returns the shared repeat variable */
 uint32_t ctrl_getRepeat(void);
 
+/**
+ * @brief Sets the shared memory identifier variable
+ * @param[out] msg optional
+ * @returns true on success, false otherwise
+*/
+bool ctrl_setMemory(params_mem mem, const char** msg);
+/** @brief Returns the shared memory identifier variable */
+params_mem ctrl_getMemory(void);
+
 /** @brief  Generates an interrupt used for signaling during IPC */
 void generateIT_IPC(uint32_t EXTI_Line);
 

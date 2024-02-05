@@ -4,7 +4,8 @@
 
 static volatile uint32_t shDataSize __attribute__((section(".shared"))) = 1; 
 static volatile params_direction shDirection __attribute__((section(".shared"))) = M7_SEND;
-static uint32_t g_repeat = 1; // no need to be shared
+static volatile params_direction shMem __attribute__((section(".shared"))) = MEM_D1;
+static uint32_t gRepeat = 1; // no need to be shared
 
 bool ctrl_setDataSize(uint32_t dataSize, const char** msg) {
     if (dataSize < DATASIZE_LOW_LIMIT) {
@@ -38,16 +39,26 @@ params_direction ctrl_getDirection(void) {
 bool ctrl_setRepeat(uint32_t repeat, const char** msg) {
     if (REPETITION_UP_LIMIT < repeat) {
         if (msg != NULL) *msg = "Repetition saturated to upper limit\r\n";
-        g_repeat = REPETITION_UP_LIMIT;
+        gRepeat = REPETITION_UP_LIMIT;
     }
     else {
-        g_repeat = repeat;
+        gRepeat = repeat;
     }
     return true;
 }
 
 uint32_t ctrl_getRepeat(void) {
-    return g_repeat;
+    return gRepeat;
+}
+
+bool ctrl_setMemory(params_mem mem, const char** msg) {
+    (void)msg;
+    shMem = mem;
+    return true;
+}
+
+params_mem ctrl_getMemory(void) {
+    return shMem;
 }
 
 void generateIT_IPC(uint32_t EXTI_Line) {
