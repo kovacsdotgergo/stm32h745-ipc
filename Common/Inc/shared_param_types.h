@@ -2,6 +2,9 @@
 #define SHARED_PARAM_TYPES_H
 /** @file Types for the shared parameters */
 
+#include <stdbool.h>
+#include <assert.h>
+
 typedef enum {
     M7_SEND = 0,
     M7_RECEIVE,

@@ -15,7 +15,6 @@
 #include "ipc_mb_common.h"
 #include "time_meas.h"
 #include "meas_control.h"
-#include "error_handler.h"
 
 #define START_MEAS_BIT 0x01
 

@@ -8,7 +8,8 @@
 
 #include <stdint.h>
 
-#include "meas_control_common.h"
+#include "hw_control_common.h"
+#include "shared_param_types.h"
 #include "mb_config.h"
 
 #define MB2TO1_INT_EXTI_IRQ EXTI4_IRQn
@@ -59,6 +60,7 @@ MB_STORAGE_VARIABLES_DECL(D1)
 MB_STORAGE_VARIABLES_DECL(D2)
 MB_STORAGE_VARIABLES_DECL(D3)
 
+// Pointers to the currently used MBs
 extern MessageBufferHandle_t* mb_gpCurrentControlMB;
 extern MessageBufferHandle_t* mb_gpCurrentDataMB;
 

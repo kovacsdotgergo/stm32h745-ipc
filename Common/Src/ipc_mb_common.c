@@ -70,6 +70,7 @@ void mb_interruptHandlerIPC_messageBuffer( void ) {
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
+// todo: bool return value
 void mb_setUsedMemory(params_mem mem) {
     switch (mem) {
     case MEM_D1:

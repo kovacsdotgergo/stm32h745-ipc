@@ -119,6 +119,8 @@ void meastask_core1MeasurementTask( void *pvParameters ){
         .getRepeat = ctrl_getRepeat,
         .setDirection = ctrl_setDirection,
         .getDirection = ctrl_getDirection,
+        .setMem = ctrl_setMemory,
+        .getMem = ctrl_getMemory,
         .setStartMeas = setStartMeas, // function setting static global
     };
 

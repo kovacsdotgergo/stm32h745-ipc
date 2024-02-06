@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "mb_config.h" // for datasize limit
+#include "ipc_mb_common.h"
 #include "shared_param_types.h"
 
 #define START_MEAS_INT_EXTI_IRQ EXTI3_IRQn
@@ -60,9 +62,5 @@ uint32_t ctrl_getRepeat(void);
 bool ctrl_setMemory(params_mem mem, const char** msg);
 /** @brief Returns the shared memory identifier variable */
 params_mem ctrl_getMemory(void);
-
-/** @brief  Generates an interrupt used for signaling during IPC */
-void generateIT_IPC(uint32_t EXTI_Line);
-
 
 #endif // MEAS_CONTROL_COMMON_H

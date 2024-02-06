@@ -5,7 +5,6 @@
 #include "task.h"
 
 #include "ipc_mb_common.h"
-#include "error_handler.h"
 
 void initIPC_MessageBuffers(void);
 void createIPCMessageBuffers(void);

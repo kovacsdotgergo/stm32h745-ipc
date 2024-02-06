@@ -26,7 +26,8 @@
     X(direction, Direction, 1, "direction <dir>: sets the direction from the M7 viewpoint\r\n\t\tdir can be 'send', 's', 'receive' or 'r'") \
     X(clk, Clk, 2, "clk <m7clk[Hz]> <m4clk[Hz]>: sets the clk frequencies if possible") \
     X(repeat, Repeat, 1, "repeat <num>: sets the repetition count of the measurement, can be saturated") \
-    X(datasize, Datasize, 1, "datasize <size>: sets the size of the measured message, can be saturated")
+    X(datasize, Datasize, 1, "datasize <size>: sets the size of the measured message, can be saturated") \
+    X(mem, Mem, 1, "mem <memory>: sets the memory used by the Message Buffers\r\n\t\tmemory can be 'D1', 'D2' or 'D3'")
     // todo add reset
 
 // maximum of the arg num parameter, char always has the strictest alignment (1)
@@ -82,8 +83,9 @@ typedef struct { // NOTE: the functions return true on success, false otherwise
     uint32_t (*getRepeat)(void);
     bool (*setDirection)(params_direction direction, const char** msg);
     params_direction (*getDirection)(void);
+    bool (*setMem)(params_mem mem, const char** msg);
+    params_mem (*getMem)(void);
     void (*setStartMeas)(void);
-    // todo memory
     // todo endpoints possibly on the same processor ~ enum source and target
 } uart_controlIf;
 

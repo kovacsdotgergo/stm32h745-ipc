@@ -16,7 +16,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     interruptHandlerIPC_startMeas();
     break;
   default:
-    ErrorHandler();
+    assert(false);
     break;
   }
 }
@@ -31,6 +31,7 @@ void core2MeasurementTask( void *pvParameters )
     /* Wait for start signal and direction of the measurement */
     (void)xSemaphoreTake( startMeasSemaphore, portMAX_DELAY ); // indefinite block
     
+    mb_setUsedMemory(ctrl_getMemory());
     /* Perform one measurement */
     switch (ctrl_getDirection())
     {
@@ -41,7 +42,7 @@ void core2MeasurementTask( void *pvParameters )
       app_measureCore2Sending(ctrl_getDataSize());
       break;
     default:
-      ErrorHandler();
+      assert(false);
       break;
     }
   }
@@ -62,7 +63,7 @@ void app_measureCore2Recieving(void){
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(xReceivedBytes != sizeFromMessage || 
       ((sizeFromMessage > 2) && recieveBuffer[xReceivedBytes - 1] != ulNextValue)){
-    ErrorHandler();
+    assert(false);
   }
 
   memset( recieveBuffer, 0x00, xReceivedBytes );
