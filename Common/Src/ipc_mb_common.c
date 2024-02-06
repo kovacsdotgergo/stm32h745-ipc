@@ -4,25 +4,25 @@
 // todo add the sectoin to the name
 #define MB_STORAGE_VARIABLES_DEF(mem) \
     /* Message buffers */ \
-    volatile MessageBufferHandle_t \
+    MessageBufferHandle_t \
         mem##ControlMessageBuffers[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
-    volatile MessageBufferHandle_t \
+    MessageBufferHandle_t \
         mem##DataMessageBuffers[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
     /* The variable used to hold the stream buffer structure.*/ \
-    volatile StaticStreamBuffer_t \
+    StaticStreamBuffer_t \
         mem##ControlStreamBufferStruct[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
-    volatile StaticStreamBuffer_t \
+    StaticStreamBuffer_t \
         mem##DataStreamBufferStruct[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
     /* Used to dimension the array used to hold the streams.*/ \
     /* Defines the memory that will hold the streams within the stream buffer.*/ \
-    volatile uint8_t  \
+    uint8_t  \
         mem##ControlStorageBuffer[DIRECTION_NUM][ mbaCONTROL_MESSAGE_BUFFER_SIZE ] \
         __attribute__((section(".shared_"#mem))); \
-    volatile uint8_t \
+    uint8_t \
         mem##DataStorageBuffer[DIRECTION_NUM][ mbaTASK_MESSAGE_BUFFER_SIZE ] \
         __attribute__((section(".shared_"#mem))); 
 
@@ -31,9 +31,8 @@ MB_STORAGE_VARIABLES_DEF(D1)
 MB_STORAGE_VARIABLES_DEF(D2)
 MB_STORAGE_VARIABLES_DEF(D3)
 
-volatile MessageBufferHandle_t* mb_gpCurrentControlMB
-    = D1ControlMessageBuffers;
-volatile MessageBufferHandle_t* mb_gpCurrentDataMB = D1DataMessageBuffers;
+MessageBufferHandle_t* mb_gpCurrentControlMB = D1ControlMessageBuffers;
+MessageBufferHandle_t* mb_gpCurrentDataMB = D1DataMessageBuffers;
 
 
 void mb_generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){

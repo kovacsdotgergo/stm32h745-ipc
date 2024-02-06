@@ -41,17 +41,17 @@
 #define mbaDONT_BLOCK 0
 
 #define MB_STORAGE_VARIABLES_DECL(mem) \
-    extern volatile MessageBufferHandle_t \
+    extern MessageBufferHandle_t \
         mem##ControlMessageBuffers[DIRECTION_NUM]; \
-    extern volatile MessageBufferHandle_t \
+    extern MessageBufferHandle_t \
         mem##DataMessageBuffers[DIRECTION_NUM]; \
-    extern volatile StaticStreamBuffer_t \
+    extern StaticStreamBuffer_t \
         mem##ControlStreamBufferStruct[DIRECTION_NUM]; \
-    extern volatile StaticStreamBuffer_t \
+    extern StaticStreamBuffer_t \
         mem##DataStreamBufferStruct[DIRECTION_NUM]; \
-    extern volatile uint8_t \
+    extern uint8_t \
         mem##ControlStorageBuffer[DIRECTION_NUM][mbaCONTROL_MESSAGE_BUFFER_SIZE]; \
-    extern volatile uint8_t \
+    extern uint8_t \
         mem##DataStorageBuffer[DIRECTION_NUM][mbaTASK_MESSAGE_BUFFER_SIZE]; \
 
 // Variables used by the IPC MBs
@@ -59,8 +59,8 @@ MB_STORAGE_VARIABLES_DECL(D1)
 MB_STORAGE_VARIABLES_DECL(D2)
 MB_STORAGE_VARIABLES_DECL(D3)
 
-extern volatile MessageBufferHandle_t* mb_gpCurrentControlMB;
-extern volatile MessageBufferHandle_t* mb_gpCurrentDataMB;
+extern MessageBufferHandle_t* mb_gpCurrentControlMB;
+extern MessageBufferHandle_t* mb_gpCurrentDataMB;
 
 /** @brief Triggers interrupt used for IPC message buffer communication */
 void mb_generateInterruptIPC_messageBuffer(void* updatedMessageBuffer);
