@@ -26,6 +26,7 @@ static inline const char* params_memToStr(params_mem mem) {
     case MEM_D3: return "D3";
     default: assert(false);
     }
+    return NULL;
 }
 
 /** @returns The string equivalent for the params_direction enum */
@@ -35,6 +36,7 @@ static inline const char* params_measDirectionToStr(params_direction dir) {
     case M7_RECEIVE: return "M7 receive";
     default: assert(false);
     }
+    return NULL;
 }
 
 #endif // SHARED_PARAM_TYPES_H

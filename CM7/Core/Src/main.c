@@ -28,6 +28,7 @@
 #include "uart_commands.h"
 #include "app.h"
 #include "ipc_mb.h"
+#include "time_meas.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -147,8 +148,9 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   ctrl_initInterrupts();
+  ctrl_initSharedVariables();
   initIPC_MessageBuffers();
-  createIPCMessageBuffers();
+  time_initTimers();
 
   /* USER CODE END Init */
 
@@ -210,7 +212,7 @@ Error_Handler();
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  app_createTasks();
+  app_createTasks(&huart3);
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -527,6 +529,7 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  (void)argument;
   /* Infinite loop */
   for(;;)
   {
@@ -557,6 +560,20 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0x24000000;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.BaseAddress = 0x30000000;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */

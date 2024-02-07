@@ -1,9 +1,17 @@
 #include "meas_control_common.h"
 
-static volatile uint32_t shDataSize __attribute__((section(".shared"))) = 1; 
-static volatile params_direction shDirection __attribute__((section(".shared"))) = M7_SEND;
-static volatile params_direction shMem __attribute__((section(".shared"))) = MEM_D1;
-static uint32_t gRepeat = 1; // no need to be shared
+static volatile uint32_t shDataSize __attribute__((section(".shared"))); 
+static volatile params_direction shDirection __attribute__((section(".shared")));
+static volatile params_mem shMem __attribute__((section(".shared")));
+static uint32_t g_repeat = 1; // no need to be shared
+
+void ctrl_initSharedVariables(void) {
+#ifdef CORE_CM7
+    shDataSize = 1;
+    shDirection = M7_SEND;
+    shMem = MEM_D1;
+#endif
+}
 
 bool ctrl_setDataSize(uint32_t dataSize, const char** msg) {
     if (dataSize < DATASIZE_LOW_LIMIT) {
@@ -37,16 +45,16 @@ params_direction ctrl_getDirection(void) {
 bool ctrl_setRepeat(uint32_t repeat, const char** msg) {
     if (REPETITION_UP_LIMIT < repeat) {
         if (msg != NULL) *msg = "Repetition saturated to upper limit\r\n";
-        gRepeat = REPETITION_UP_LIMIT;
+        g_repeat = REPETITION_UP_LIMIT;
     }
     else {
-        gRepeat = repeat;
+        g_repeat = repeat;
     }
     return true;
 }
 
 uint32_t ctrl_getRepeat(void) {
-    return gRepeat;
+    return g_repeat;
 }
 
 bool ctrl_setMemory(params_mem mem, const char** msg) {

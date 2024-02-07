@@ -23,8 +23,11 @@
 
 #define DATASIZE_UP_LIMIT MB_MAX_DATA_SIZE
 #define DATASIZE_LOW_LIMIT 1
+static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
 
-//static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
+/** @brief Initializes the shared variables, because they are located in
+ *  an uninitialized section */
+void ctrl_initSharedVariables(void);
 
 // Functions handling the shared variables
 /** 

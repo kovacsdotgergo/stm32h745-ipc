@@ -4,10 +4,10 @@
 // todo add the sectoin to the name
 #define MB_STORAGE_VARIABLES_DEF(mem) \
     /* Message buffers */ \
-    MessageBufferHandle_t \
+    volatile MessageBufferHandle_t \
         mem##ControlMessageBuffers[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
-    MessageBufferHandle_t \
+    volatile MessageBufferHandle_t \
         mem##DataMessageBuffers[DIRECTION_NUM] \
         __attribute__((section(".shared_"#mem))); \
     /* The variable used to hold the stream buffer structure.*/ \
@@ -31,8 +31,8 @@ MB_STORAGE_VARIABLES_DEF(D1)
 MB_STORAGE_VARIABLES_DEF(D2)
 MB_STORAGE_VARIABLES_DEF(D3)
 
-MessageBufferHandle_t* mb_gpCurrentControlMB = D1ControlMessageBuffers;
-MessageBufferHandle_t* mb_gpCurrentDataMB = D1DataMessageBuffers;
+MessageBufferHandle_t* mb_gpCurrentControlMB;
+MessageBufferHandle_t* mb_gpCurrentDataMB;
 
 
 void mb_generateInterruptIPC_messageBuffer(void* updatedMessageBuffer){
@@ -74,16 +74,16 @@ void mb_interruptHandlerIPC_messageBuffer( void ) {
 void mb_setUsedMemory(params_mem mem) {
     switch (mem) {
     case MEM_D1:
-        mb_gpCurrentControlMB = D1ControlMessageBuffers;
-        mb_gpCurrentDataMB = D1DataMessageBuffers;
+        mb_gpCurrentControlMB = (MessageBufferHandle_t)D1ControlMessageBuffers;
+        mb_gpCurrentDataMB = (MessageBufferHandle_t)D1DataMessageBuffers;
         break;
     case MEM_D2:
-        mb_gpCurrentControlMB = D2ControlMessageBuffers;
-        mb_gpCurrentDataMB = D2DataMessageBuffers;
+        mb_gpCurrentControlMB = (MessageBufferHandle_t)D2ControlMessageBuffers;
+        mb_gpCurrentDataMB = (MessageBufferHandle_t)D2DataMessageBuffers;
         break;
     case MEM_D3:
-        mb_gpCurrentControlMB = D3ControlMessageBuffers;
-        mb_gpCurrentDataMB = D3DataMessageBuffers;
+        mb_gpCurrentControlMB = (MessageBufferHandle_t)D3ControlMessageBuffers;
+        mb_gpCurrentDataMB = (MessageBufferHandle_t)D3DataMessageBuffers;
         break;
     default:
         assert(false);

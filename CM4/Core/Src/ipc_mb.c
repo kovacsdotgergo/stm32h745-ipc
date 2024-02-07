@@ -1,9 +1,9 @@
 #include "ipc_mb.h"
 
-void initIPC_MessageBuffers(void) {
-    /* Timer for time measurement */
-    htim5.Instance = TIM5; // IMPORTANT to be able to read the timer! todo move somewhere else
+#define ASSERT_MB_INITIALIZED(mem, purpose, index) \
+    do { assert(mem##purpose##MessageBuffers[(index)] != NULL); } while(0)
 
+void initIPC_MessageBuffers(void) {
     /* Int config for message buffer*/
     HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
@@ -12,8 +12,19 @@ void initIPC_MessageBuffers(void) {
     HAL_NVIC_EnableIRQ(MB1TO2_INT_EXTI_IRQ);
     
     /* m7 core initializes the message buffers */
-    assert(mb_gpCurrentDataMB[DATA_SEND_IDX] != NULL
-           && mb_gpCurrentDataMB[DATA_RECV_IDX] != NULL
-           && mb_gpCurrentControlMB[CONTROL_SEND_IDX] != NULL
-           && mb_gpCurrentControlMB[CONTROL_RECV_IDX] != NULL);
+    ASSERT_MB_INITIALIZED(D1, Control, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D1, Control, CONTROL_RECV_IDX);
+    ASSERT_MB_INITIALIZED(D2, Control, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D2, Control, CONTROL_RECV_IDX);
+    ASSERT_MB_INITIALIZED(D3, Control, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D3, Control, CONTROL_RECV_IDX);
+    
+    ASSERT_MB_INITIALIZED(D1, Data, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D1, Data, CONTROL_RECV_IDX);
+    ASSERT_MB_INITIALIZED(D2, Data, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D2, Data, CONTROL_RECV_IDX);
+    ASSERT_MB_INITIALIZED(D3, Data, CONTROL_SEND_IDX);
+    ASSERT_MB_INITIALIZED(D3, Data, CONTROL_RECV_IDX);
+
+    mb_setUsedMemory(CURRENT_MEM_INIT);
 }

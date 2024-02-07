@@ -40,11 +40,12 @@
 
 /* A block time of 0 simply means, don't block. */
 #define mbaDONT_BLOCK 0
+#define CURRENT_MEM_INIT MEM_D1
 
 #define MB_STORAGE_VARIABLES_DECL(mem) \
-    extern MessageBufferHandle_t \
+    extern volatile MessageBufferHandle_t \
         mem##ControlMessageBuffers[DIRECTION_NUM]; \
-    extern MessageBufferHandle_t \
+    extern volatile MessageBufferHandle_t \
         mem##DataMessageBuffers[DIRECTION_NUM]; \
     extern StaticStreamBuffer_t \
         mem##ControlStreamBufferStruct[DIRECTION_NUM]; \

@@ -293,15 +293,15 @@ uart_parseStatus uart_parseMemCmd(const char* toks[MAX_ARG_NUM],
     assert(controlFuns->setMem != NULL);
     *msg = NULL;
     // arg conversion from string
-    if (!strn_exactMatch("D1", toks[0], toklens[0])) {
+    if (strn_exactMatch("D1", toks[0], toklens[0])) {
         bool success = controlFuns->setMem(MEM_D1, msg);
         assert(success);
     }
-    else if (!strn_exactMatch("D2", toks[0], toklens[0])) {
+    else if (strn_exactMatch("D2", toks[0], toklens[0])) {
         bool success = controlFuns->setMem(MEM_D2, msg);
         assert(success);
     }
-    else if (!strn_exactMatch("D3", toks[0], toklens[0])) {
+    else if (strn_exactMatch("D3", toks[0], toklens[0])) {
         bool success = controlFuns->setMem(MEM_D3, msg);
         assert(success);
     }

@@ -3,6 +3,8 @@
 #include "FreeRTOS.h"
 #include "stm32h7xx_hal.h"
 
+static SemaphoreHandle_t g_endMeasSemaphore = NULL;
+
 void ctrl_initInterrupts(void) {
     /* SW interrupt for end of measurement */
     HAL_NVIC_SetPriority(END_MEAS_INT_EXTI_IRQ, 0xFU, 0U);
@@ -11,10 +13,16 @@ void ctrl_initInterrupts(void) {
     HAL_EXTI_EdgeConfig(START_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
 }
 
+void ctrl_setEndMeasSemaphore(SemaphoreHandle_t endMeasSemaphore) {
+    assert(endMeasSemaphore != NULL);
+    g_endMeasSemaphore = endMeasSemaphore;
+}
+
+
 void ctrl_interruptHandlerIPC_endMeas( void ){
     /* Signaling to task with notification*/
     BaseType_t xHigherPriorityTaskWoken;
-    xSemaphoreGiveFromISR( app_endMeasSemaphore, &xHigherPriorityTaskWoken );
+    xSemaphoreGiveFromISR( g_endMeasSemaphore, &xHigherPriorityTaskWoken );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 
     HAL_EXTI_D1_ClearFlag(END_MEAS_INT_EXTI_LINE);

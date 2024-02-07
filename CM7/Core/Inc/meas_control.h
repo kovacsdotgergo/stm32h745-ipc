@@ -3,7 +3,7 @@
 
 #include "hw_control_common.h"
 #include "meas_control_common.h"
-#include "app.h"
+#include "semphr.h"
 
 enum { // rm0399, pg. 166, number of wait states based on the axi clk
     VOS0_0WS_MAX_AXI_CLK = 70000000U,
@@ -15,6 +15,13 @@ enum { // rm0399, pg. 166, number of wait states based on the axi clk
 
 /** @brief Sets up the required peripherals for the inter-core interrupt*/
 void ctrl_initInterrupts(void);
+
+/** 
+ * @brief Sets the semaphore used for signaling the end of
+ *  measurement
+ * @param[in] endMeasSemaphore handle of the semaphore signaling the end
+*/
+void ctrl_setEndMeasSemaphore(SemaphoreHandle_t endMeasSempahore);
 
 /** @brief Triggers interupt used for IPC signaling start of meas */
 void ctrl_generateInterruptIPC_startMeas(void);
