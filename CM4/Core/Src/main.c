@@ -26,6 +26,7 @@
 #include "app.h"
 #include "message_buffer.h"
 #include "ipc_mb.h"
+#include "time_meas.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,7 +130,9 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   ctrl_initInterrupts();
+  ctrl_initSharedVariables();
   initIPC_MessageBuffers();
+  time_initTimers();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN SysInit */

@@ -9,6 +9,13 @@ static volatile uint32_t shStartTime __attribute__((section(".shared")));
 static volatile uint32_t shEndTime __attribute__((section(".shared")));
 static volatile uint32_t shOffset __attribute__((section(".shared")));
 
+void time_initTimers(void) {
+#ifdef CORE_CM4
+    /* Timer for time measurement */
+    htim5.Instance = TIM5; // IMPORTANT to be able to read the timer!
+#endif
+}
+
 void time_startTime(void) {
     shStartTime = __HAL_TIM_GET_COUNTER(htimTimeMeas);
     __COMPILER_BARRIER();
@@ -17,6 +24,7 @@ void time_startTime(void) {
 void time_endTime(void) {
     __COMPILER_BARRIER();
     shEndTime = __HAL_TIM_GET_COUNTER(htimTimeMeas);
+    // todo barrier
 }
 
 void time_setSharedOffset(void) {

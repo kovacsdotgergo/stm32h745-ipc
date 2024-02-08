@@ -1,10 +1,17 @@
 #include "meas_control_common.h"
 
-#include "stm32h7xx_hal.h"
-
-static volatile uint32_t shDataSize __attribute__((section(".shared"))) = 1; 
-static volatile params_direction shDirection __attribute__((section(".shared"))) = M7_SEND;
+static volatile uint32_t shDataSize __attribute__((section(".shared"))); 
+static volatile params_direction shDirection __attribute__((section(".shared")));
+static volatile params_mem shMem __attribute__((section(".shared")));
 static uint32_t g_repeat = 1; // no need to be shared
+
+void ctrl_initSharedVariables(void) {
+#ifdef CORE_CM7
+    shDataSize = 1;
+    shDirection = M7_SEND;
+    shMem = MEM_D1;
+#endif
+}
 
 bool ctrl_setDataSize(uint32_t dataSize, const char** msg) {
     if (dataSize < DATASIZE_LOW_LIMIT) {
@@ -27,6 +34,7 @@ uint32_t ctrl_getDataSize(void) {
 
 bool ctrl_setDirection(params_direction direction, const char** msg) {
     (void)msg;
+    assert(direction < DIRECTION_NUM);
     shDirection = direction;
     return true;
 }
@@ -50,16 +58,13 @@ uint32_t ctrl_getRepeat(void) {
     return g_repeat;
 }
 
-void generateIT_IPC(uint32_t EXTI_Line) {
-#ifdef CORE_CM4
-    HAL_EXTI_D2_EventInputConfig(EXTI_Line, EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D1_EventInputConfig(EXTI_Line, EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(EXTI_Line);
-#elif defined CORE_CM7
-    HAL_EXTI_D1_EventInputConfig(EXTI_Line, EXTI_MODE_IT, DISABLE);
-    HAL_EXTI_D2_EventInputConfig(EXTI_Line, EXTI_MODE_IT, ENABLE);
-    HAL_EXTI_GenerateSWInterrupt(EXTI_Line);
-#else
-    #error Neither core is defined
-#endif // CORE
+bool ctrl_setMemory(params_mem mem, const char** msg) {
+    (void)msg;
+    mb_setUsedMemory(mem);
+    shMem = mem;
+    return true;
+}
+
+params_mem ctrl_getMemory(void) {
+    return shMem;
 }

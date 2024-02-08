@@ -125,9 +125,7 @@ uart_parseStatus uart_parseBuffer(const uart_LineBuffer* lineBuffer,
 #define MAX_MSG_LEN 256 // static local buffers for return messages
 static char msgBuf[MAX_MSG_LEN];
 
-/**
- * @brief Sets msg to the help string
-*/
+/** @brief Sets msg to the help string */
 uart_parseStatus uart_parseHelpCmd(const char* toks[MAX_ARG_NUM],
                                    size_t toklens[MAX_ARG_NUM],
                                    const uart_controlIf* controlFuns,
@@ -146,22 +144,31 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     assert(controlFuns->getRepeat != NULL
            && controlFuns->getDataSize != NULL
            && controlFuns->getDirection != NULL
-           && controlFuns->getClks != NULL);
+           && controlFuns->getClks != NULL
+           && controlFuns->getMem != NULL);
     size_t cursor = 0;
     cursor += addStrToBuf(&msgBuf[cursor], "Current value of parameters:");
-
+    // Print repetition count
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* repeat: ");
     cursor += strn_utostrn(controlFuns->getRepeat(), 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
-
+    // Print data size
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* dataSize: ");
     cursor += strn_utostrn(controlFuns->getDataSize(), 
                       &msgBuf[cursor], MAX_MSG_LEN - cursor);
-
+    // Print direction
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* direction: ");
     cursor += addStrToBuf(&msgBuf[cursor],
                           params_measDirectionToStr(controlFuns->getDirection()));
-
+    // Print used memory
+    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* memory: ");
+    cursor += addStrToBuf(&msgBuf[cursor],
+                          params_memToStr(controlFuns->getMem()));
+    // Print enabled cache
+    cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* cache: ");
+    cursor += addStrToBuf(&msgBuf[cursor],
+                          params_cacheToStr(controlFuns->getEnabledCache()));
+    // Print clks
     uint32_t clkM7, clkM4;
     controlFuns->getClks(&clkM7, &clkM4);
     cursor += addStrToBuf(&msgBuf[cursor], "\r\n\t* m7 clk [Hz]: ");
@@ -177,7 +184,7 @@ uart_parseStatus uart_parseGetparamsCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Sets the start field of the controlFuns */
+/** @brief Sets the calls the setStart field of the controlFuns */
 uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
                                     size_t toklens[MAX_ARG_NUM],
                                     const uart_controlIf* controlFuns,
@@ -190,8 +197,8 @@ uart_parseStatus uart_parseStartCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Parses the argument tokens, then sets the direction field of the
- *      controlFuns */
+/** @brief Parses the argument tokens, then calls the setDirection field of
+ *  controlFuns */
 uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
                                         size_t toklens[MAX_ARG_NUM],
                                         const uart_controlIf* controlFuns,
@@ -216,7 +223,7 @@ uart_parseStatus uart_parseDirectionCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Parses the argument tokens, then sets the clk fields of the 
+/** @brief Parses the argument tokens, then calls the setClk field of 
  *  controlFuns */
 uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
                                   size_t toklens[MAX_ARG_NUM],
@@ -238,7 +245,7 @@ uart_parseStatus uart_parseClkCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Parses the argument tokens, then sets the repeat field of the
+/** @brief Parses the argument tokens, then calls  thesetRepeat field of
  *  controlFuns */
 uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
                                      size_t toklens[MAX_ARG_NUM],
@@ -258,7 +265,7 @@ uart_parseStatus uart_parseRepeatCmd(const char* toks[MAX_ARG_NUM],
     return PARSE_OK;
 }
 
-/** @brief Parses the argument tokens, then sets the datasize field of 
+/** @brief Parses the argument tokens, then calls the setDatasize field of 
  *  controlFuns */
 uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
                                        size_t toklens[MAX_ARG_NUM],
@@ -275,5 +282,65 @@ uart_parseStatus uart_parseDatasizeCmd(const char* toks[MAX_ARG_NUM],
     if (!controlFuns->setDataSize(datasize, msg)) {
         return PARSE_ARG_VAL_ERR;
     }
+    return PARSE_OK;
+}
+
+/** @brief Parses the argument tokens, then calls the setMem field of
+ *  controlFuns */
+uart_parseStatus uart_parseMemCmd(const char* toks[MAX_ARG_NUM],
+                                  size_t toklens[MAX_ARG_NUM],
+                                  const uart_controlIf* controlFuns,
+                                  const char** msg) {    
+    assert(controlFuns->setMem != NULL);
+    *msg = NULL;
+    // arg conversion from string
+    if (strn_exactMatch("D1", toks[0], toklens[0])) {
+        bool success = controlFuns->setMem(MEM_D1, msg);
+        assert(success);
+    }
+    else if (strn_exactMatch("D2", toks[0], toklens[0])) {
+        bool success = controlFuns->setMem(MEM_D2, msg);
+        assert(success);
+    }
+    else if (strn_exactMatch("D3", toks[0], toklens[0])) {
+        bool success = controlFuns->setMem(MEM_D3, msg);
+        assert(success);
+    }
+    else {
+        return PARSE_ARG_VAL_ERR;
+    }
+
+    return PARSE_OK;
+}
+
+/** @brief Parses the argument tokens, then calls the setEnabled cache 
+ *  field of controlFuns */
+uart_parseStatus uart_parseCacheCmd(const char* toks[MAX_ARG_NUM],
+                                  size_t toklens[MAX_ARG_NUM],
+                                  const uart_controlIf* controlFuns,
+                                  const char** msg) {
+    assert(controlFuns->setEnabledCache != NULL);
+    *msg = NULL;
+    //arg conversion from string
+    if (strn_exactMatch("none", toks[0], toklens[0])) {
+        bool success = controlFuns->setEnabledCache(NO_CACHE, msg);
+        assert(success);
+    }
+    else if (strn_exactMatch("i", toks[0], toklens[0])) {
+        bool success = controlFuns->setEnabledCache(I_CACHE, msg);
+        assert(success);
+    }
+    else if (strn_exactMatch("d", toks[0], toklens[0])) {
+        bool success = controlFuns->setEnabledCache(D_CACHE, msg);
+        assert(success);
+    }
+    else if (strn_exactMatch("id", toks[0], toklens[0])) {
+        bool success = controlFuns->setEnabledCache(ID_CACHE, msg);
+        assert(success);
+    }
+    else {
+        return PARSE_ARG_VAL_ERR;
+    }
+
     return PARSE_OK;
 }

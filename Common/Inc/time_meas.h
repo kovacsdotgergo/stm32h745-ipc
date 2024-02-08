@@ -5,6 +5,8 @@
 
 static const uint32_t runtimeOffset = 24;
 
+/** @brief Initializes the used timers */
+void time_initTimers(void);
 /* Time measurement functions interfacing the shared variables */
 void time_startTime(void);
 void time_endTime(void);

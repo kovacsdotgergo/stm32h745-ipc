@@ -114,6 +114,15 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  /* My own shared section ==============================================*/
+  .shared_D2 0x10000000 :
+  {
+    . = ALIGN(4);
+    *(.shared_D2)
+    . = ALIGN(64K);
+  } > RAM
+  /* ====================================================================*/
+
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
@@ -159,12 +168,20 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  .shared 0x38000000 :
+  /* My own shared section ==============================================*/
+  .shared_D1 0x24000000 :
   {
     . = ALIGN(4);
-    KEEP(*(.shared SORT_BY_NAME(.shared.*))) /* Ensuring the same order of shared variables in memory on both cores */
+    *(.shared_D1)
     *(.shared)
+  } > RAM_D1
+
+  .shared_D3 0x38000000 :
+  {
+    . = ALIGN(4);
+    *(.shared_D3)
   } > RAM_D3
+  /* ====================================================================*/
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

@@ -1,8 +1,11 @@
 #ifndef MEAS_CONTROL_H
 #define MEAS_CONTROL_H
 
+#include "hw_control_common.h"
 #include "meas_control_common.h"
-#include "app.h"
+#include "semphr.h"
+
+#define CACHE_INIT ID_CACHE;
 
 enum { // rm0399, pg. 166, number of wait states based on the axi clk
     VOS0_0WS_MAX_AXI_CLK = 70000000U,
@@ -14,6 +17,13 @@ enum { // rm0399, pg. 166, number of wait states based on the axi clk
 
 /** @brief Sets up the required peripherals for the inter-core interrupt*/
 void ctrl_initInterrupts(void);
+
+/** 
+ * @brief Sets the semaphore used for signaling the end of
+ *  measurement
+ * @param[in] endMeasSemaphore handle of the semaphore signaling the end
+*/
+void ctrl_setEndMeasSemaphore(SemaphoreHandle_t endMeasSempahore);
 
 /** @brief Triggers interupt used for IPC signaling start of meas */
 void ctrl_generateInterruptIPC_startMeas(void);
@@ -37,5 +47,14 @@ bool ctrl_setClks(uint32_t m7clk, uint32_t m4clk, const char** msg);
  * @param[out] m4clk M4 core clock in [Hz]
 */
 void ctrl_getClks(uint32_t* m7clk, uint32_t* m4clk);
+
+/**
+ * @brief Enables the intstruction and/or data cache
+*/
+bool ctrl_setEnabledCache(params_cache cache, const char** msg);
+/**
+ * @brief Returns the enabled cache
+*/
+params_cache ctrl_getEnabledCache(void);
 
 #endif // MEAS_CONTROL_H

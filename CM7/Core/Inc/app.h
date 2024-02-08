@@ -11,11 +11,10 @@
 #include "meas_task.h"
 
 extern TaskHandle_t core1TaskHandle;
-extern SemaphoreHandle_t app_endMeasSemaphore;
 
 /* Callback handling the exti interrupts */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 
-void app_createTasks(void);
+void app_createTasks(UART_HandleTypeDef* meastaskHuart);
 
 #endif /* APP_H */

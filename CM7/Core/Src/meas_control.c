@@ -3,6 +3,9 @@
 #include "FreeRTOS.h"
 #include "stm32h7xx_hal.h"
 
+static SemaphoreHandle_t g_endMeasSemaphore = NULL;
+static params_cache g_cache = CACHE_INIT;
+
 void ctrl_initInterrupts(void) {
     /* SW interrupt for end of measurement */
     HAL_NVIC_SetPriority(END_MEAS_INT_EXTI_IRQ, 0xFU, 0U);
@@ -11,10 +14,16 @@ void ctrl_initInterrupts(void) {
     HAL_EXTI_EdgeConfig(START_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
 }
 
+void ctrl_setEndMeasSemaphore(SemaphoreHandle_t endMeasSemaphore) {
+    assert(endMeasSemaphore != NULL);
+    g_endMeasSemaphore = endMeasSemaphore;
+}
+
+
 void ctrl_interruptHandlerIPC_endMeas( void ){
     /* Signaling to task with notification*/
     BaseType_t xHigherPriorityTaskWoken;
-    xSemaphoreGiveFromISR( app_endMeasSemaphore, &xHigherPriorityTaskWoken );
+    xSemaphoreGiveFromISR( g_endMeasSemaphore, &xHigherPriorityTaskWoken );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 
     HAL_EXTI_D1_ClearFlag(END_MEAS_INT_EXTI_LINE);
@@ -144,4 +153,33 @@ static uint32_t getM7ClkFreq(void) {
 void ctrl_getClks(uint32_t* m7clk, uint32_t* m4clk) {
     if (m7clk != NULL) *m7clk = getM7ClkFreq(); // freq after the d1cpre prescaler
     if (m4clk != NULL) * m4clk = HAL_RCC_GetHCLKFreq(); // freq after the HPRE prescaler
+}
+
+bool ctrl_setEnabledCache(params_cache cache, const char** msg){
+    (void)msg;
+    bool prevI, prevD, newI, newD;
+    params_cacheToID(g_cache, &prevI, &prevD);
+    params_cacheToID(cache, &newI, &newD);
+
+    if (prevI && !newI) { // turn off 1 -> 0
+        SCB_DisableICache();
+    }
+    else if (!prevI && newI) { // turn on 0 -> 1
+        SCB_InvalidateICache();
+        SCB_EnableICache();
+    }
+
+    if (prevD && !newD) { // turn off 1 -> 0
+        SCB_DisableDCache();
+    }
+    else if (!prevD && newD) { // turn on 0 -> 1
+        SCB_InvalidateDCache();
+        SCB_EnableDCache();
+    }
+    g_cache = cache;
+    return true;
+}
+
+params_cache ctrl_getEnabledCache(void){
+    return g_cache;
 }

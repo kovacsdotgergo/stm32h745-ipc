@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "mb_config.h" // for datasize limit
+#include "ipc_mb_common.h"
 #include "shared_param_types.h"
 
 #define START_MEAS_INT_EXTI_IRQ EXTI3_IRQn
@@ -21,8 +23,11 @@
 
 #define DATASIZE_UP_LIMIT MB_MAX_DATA_SIZE
 #define DATASIZE_LOW_LIMIT 1
+static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
 
-//static_assert(DATASIZE_LOW_LIMIT <= DATASIZE_UP_LIMIT);
+/** @brief Initializes the shared variables, because they are located in
+ *  an uninitialized section */
+void ctrl_initSharedVariables(void);
 
 // Functions handling the shared variables
 /** 
@@ -52,8 +57,13 @@ bool ctrl_setRepeat(uint32_t repeat, const char** msg);
 /** @brief Returns the shared repeat variable */
 uint32_t ctrl_getRepeat(void);
 
-/** @brief  Generates an interrupt used for signaling during IPC */
-void generateIT_IPC(uint32_t EXTI_Line);
-
+/**
+ * @brief Sets the shared memory identifier variable
+ * @param[out] msg optional
+ * @returns true on success, false otherwise
+*/
+bool ctrl_setMemory(params_mem mem, const char** msg);
+/** @brief Returns the shared memory identifier variable */
+params_mem ctrl_getMemory(void);
 
 #endif // MEAS_CONTROL_COMMON_H

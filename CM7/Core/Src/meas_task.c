@@ -1,5 +1,6 @@
 #include "meas_task.h"
 
+static UART_HandleTypeDef* g_measUartHandle;
 static bool g_startMeas = false;
 
 static void clearStartMeas(void) {
@@ -21,7 +22,7 @@ static bool getStartMeas(void) {
 static void printNUart(const char* msg, size_t len) {
     // transmit with max delay waits in a loop and only returns ok
     HAL_StatusTypeDef status 
-        = HAL_UART_Transmit(&MEAS_UART_CHANNEL, 
+        = HAL_UART_Transmit(g_measUartHandle, 
                             (const uint8_t*)msg, len,
                             HAL_MAX_DELAY);
     assert(status == HAL_OK);
@@ -40,7 +41,7 @@ static void printUart(const char* msg) {
 static char getcharUart(void) {
     uint8_t uartInput;
     HAL_StatusTypeDef receiveSuccess
-        = HAL_UART_Receive(&MEAS_UART_CHANNEL,
+        = HAL_UART_Receive(g_measUartHandle,
                            &uartInput, sizeof(uartInput),
                            HAL_MAX_DELAY);
     assert(receiveSuccess == HAL_OK); // max delay can only return with ok
@@ -108,10 +109,10 @@ static void processUartControl(const uart_controlIf* controlFuns) {
 }
 
 void meastask_core1MeasurementTask( void *pvParameters ){
-    ( void ) pvParameters;
+    g_measUartHandle = (UART_HandleTypeDef*)pvParameters;
 
     uart_controlIf controlFuns = {
-        .setClks = ctrl_setClks, // functions setting the shared variables
+        .setClks = ctrl_setClks, // functions setting the parameters
         .getClks = ctrl_getClks,
         .setDataSize = ctrl_setDataSize,
         .getDataSize = ctrl_getDataSize,
@@ -119,11 +120,16 @@ void meastask_core1MeasurementTask( void *pvParameters ){
         .getRepeat = ctrl_getRepeat,
         .setDirection = ctrl_setDirection,
         .getDirection = ctrl_getDirection,
+        .setMem = ctrl_setMemory,
+        .getMem = ctrl_getMemory,
+        .setEnabledCache = ctrl_setEnabledCache,
+        .getEnabledCache = ctrl_getEnabledCache,
         .setStartMeas = setStartMeas, // function setting static global
     };
 
     uint8_t uartOutputBuffer[32];
-    app_endMeasSemaphore = xSemaphoreCreateBinary(); // todo add init function
+    SemaphoreHandle_t endMeasSemaphore = xSemaphoreCreateBinary();
+    ctrl_setEndMeasSemaphore(endMeasSemaphore);
     
     printNUart(uart_getInitStr(), INIT_STR_LEN);
     
@@ -138,7 +144,8 @@ void meastask_core1MeasurementTask( void *pvParameters ){
             switch (controlFuns.getDirection())
             {
             case M7_SEND: /* M7 sends the message */
-                meastask_measureCore1Sending(controlFuns.getDataSize());
+                meastask_measureCore1Sending(controlFuns.getDataSize(),
+                                             endMeasSemaphore);
                 break;
             case M7_RECEIVE:
                 meastask_measureCore1Recieving();
@@ -159,7 +166,8 @@ void meastask_core1MeasurementTask( void *pvParameters ){
     }
 }
 
-void meastask_measureCore1Sending(uint32_t dataSize){
+void meastask_measureCore1Sending(uint32_t dataSize, 
+                                  SemaphoreHandle_t endMeasSemaphore){
     /* Assembling the message*/
     static char sendBuffer[MB_MAX_DATA_SIZE];
     static uint8_t nextValue = 0;
@@ -170,14 +178,14 @@ void meastask_measureCore1Sending(uint32_t dataSize){
     vTaskDelay(1/portTICK_PERIOD_MS);
     /* Start of measurement and sending the data */
     time_startTime();
-    xMessageBufferSend( xDataMessageBuffers[MB1TO2_IDX], 
-                                            ( void * ) sendBuffer,
-                                            dataSize,
-                                            mbaDONT_BLOCK );
+    xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX], 
+                       (void*)sendBuffer,
+                       dataSize,
+                       mbaDONT_BLOCK );
     
     ++nextValue;
     /* Waiting for the signal from the other core */
-    xSemaphoreTake(app_endMeasSemaphore, portMAX_DELAY);
+    xSemaphoreTake(endMeasSemaphore, portMAX_DELAY);
 }
 
 void meastask_measureCore1Recieving(void){
@@ -185,7 +193,7 @@ void meastask_measureCore1Recieving(void){
     uint32_t recievedBytes, sizeFromMessage;
     static uint8_t recieveBuffer[MB_MAX_DATA_SIZE];
 
-    recievedBytes = xMessageBufferReceive(xDataMessageBuffers[MB2TO1_IDX],
+    recievedBytes = xMessageBufferReceive(mb_gpCurrentDataMB[DATA_RECV_IDX],
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY);
