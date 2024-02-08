@@ -1,6 +1,23 @@
 test/build
 *.vscode
 
+visu/venv
+visu/__pycache__
+
+# keeping folder structure
+visu/figures/*
+!visu/figures/.gitkeep
+
+visu/measurements/*
+!visu/measurements/pilot/
+
+visu/measurements/pilot/*
+!visu/measurements/pilot/.gitkeep
+
+visu/models/*
+!visu/models/.gitkeep
+
+
 # Prerequisites
 *.d
 
