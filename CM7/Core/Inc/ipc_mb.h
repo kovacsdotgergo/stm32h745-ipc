@@ -6,6 +6,7 @@
 
 #include "ipc_mb_common.h"
 
+// todo comment
 void initIPC_MessageBuffers(void);
 void createIPCMessageBuffers(void);
 

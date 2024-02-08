@@ -34,6 +34,7 @@ uint32_t ctrl_getDataSize(void) {
 
 bool ctrl_setDirection(params_direction direction, const char** msg) {
     (void)msg;
+    assert(direction < DIRECTION_NUM);
     shDirection = direction;
     return true;
 }

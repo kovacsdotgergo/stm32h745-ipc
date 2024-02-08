@@ -4,6 +4,7 @@
 #include "stm32h7xx_hal.h"
 
 static SemaphoreHandle_t g_endMeasSemaphore = NULL;
+static params_cache g_cache = CACHE_INIT;
 
 void ctrl_initInterrupts(void) {
     /* SW interrupt for end of measurement */
@@ -152,4 +153,33 @@ static uint32_t getM7ClkFreq(void) {
 void ctrl_getClks(uint32_t* m7clk, uint32_t* m4clk) {
     if (m7clk != NULL) *m7clk = getM7ClkFreq(); // freq after the d1cpre prescaler
     if (m4clk != NULL) * m4clk = HAL_RCC_GetHCLKFreq(); // freq after the HPRE prescaler
+}
+
+bool ctrl_setEnabledCache(params_cache cache, const char** msg){
+    (void)msg;
+    bool prevI, prevD, newI, newD;
+    params_cacheToID(g_cache, &prevI, &prevD);
+    params_cacheToID(cache, &newI, &newD);
+
+    if (prevI && !newI) { // turn off 1 -> 0
+        SCB_DisableICache();
+    }
+    else if (!prevI && newI) { // turn on 0 -> 1
+        SCB_InvalidateICache();
+        SCB_EnableICache();
+    }
+
+    if (prevD && !newD) { // turn off 1 -> 0
+        SCB_DisableDCache();
+    }
+    else if (!prevD && newD) { // turn on 0 -> 1
+        SCB_InvalidateDCache();
+        SCB_EnableDCache();
+    }
+    g_cache = cache;
+    return true;
+}
+
+params_cache ctrl_getEnabledCache(void){
+    return g_cache;
 }

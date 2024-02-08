@@ -112,7 +112,7 @@ void meastask_core1MeasurementTask( void *pvParameters ){
     g_measUartHandle = (UART_HandleTypeDef*)pvParameters;
 
     uart_controlIf controlFuns = {
-        .setClks = ctrl_setClks, // functions setting the shared variables
+        .setClks = ctrl_setClks, // functions setting the parameters
         .getClks = ctrl_getClks,
         .setDataSize = ctrl_setDataSize,
         .getDataSize = ctrl_getDataSize,
@@ -122,6 +122,8 @@ void meastask_core1MeasurementTask( void *pvParameters ){
         .getDirection = ctrl_getDirection,
         .setMem = ctrl_setMemory,
         .getMem = ctrl_getMemory,
+        .setEnabledCache = ctrl_setEnabledCache,
+        .getEnabledCache = ctrl_getEnabledCache,
         .setStartMeas = setStartMeas, // function setting static global
     };
 

@@ -24,6 +24,7 @@ void time_startTime(void) {
 void time_endTime(void) {
     __COMPILER_BARRIER();
     shEndTime = __HAL_TIM_GET_COUNTER(htimTimeMeas);
+    // todo barrier
 }
 
 void time_setSharedOffset(void) {

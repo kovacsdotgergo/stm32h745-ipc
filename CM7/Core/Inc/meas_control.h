@@ -5,6 +5,8 @@
 #include "meas_control_common.h"
 #include "semphr.h"
 
+#define CACHE_INIT ID_CACHE;
+
 enum { // rm0399, pg. 166, number of wait states based on the axi clk
     VOS0_0WS_MAX_AXI_CLK = 70000000U,
     VOS0_1WS_MAX_AXI_CLK = 140000000U,
@@ -45,5 +47,14 @@ bool ctrl_setClks(uint32_t m7clk, uint32_t m4clk, const char** msg);
  * @param[out] m4clk M4 core clock in [Hz]
 */
 void ctrl_getClks(uint32_t* m7clk, uint32_t* m4clk);
+
+/**
+ * @brief Enables the intstruction and/or data cache
+*/
+bool ctrl_setEnabledCache(params_cache cache, const char** msg);
+/**
+ * @brief Returns the enabled cache
+*/
+params_cache ctrl_getEnabledCache(void);
 
 #endif // MEAS_CONTROL_H
