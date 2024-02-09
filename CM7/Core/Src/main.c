@@ -18,7 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "string.h"
+#include <string.h>
+#include <stdint.h>
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/

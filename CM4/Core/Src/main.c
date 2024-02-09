@@ -18,7 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "string.h"
+#include <string.h>
+#include <stdint.h>
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -350,6 +351,7 @@ void MX_USART3_UART_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  (void)argument;
   /* Infinite loop */
   for(;;)
   {
