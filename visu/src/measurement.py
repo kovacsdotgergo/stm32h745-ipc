@@ -1,45 +1,92 @@
 import os
 import serial
 import numpy as np
+import itertools
 
 from setup_paths import *
 
-class SerialConfig:
-    '''Class holding the data neccessary for the serial configuration'''
-    def __init__(self, port, baud, bytesize, parity, stopbits) -> None:
-        '''Constructor'''
-        self.port = port
-        self.baud = baud
-        self.bytesize = bytesize
-        self.parity = parity
-        self.stopbits = stopbits
+SEND_LINE_END = '\r'
+SERIAL_TIMEOUT = 1.0
+SERIAL_BAUD = 115200
+SERIAL_PORT = 'COM5'
 
-def measure(num_meas, sent_data_size, serial_config, meas_direction) -> list:
-    '''Function for controlling measurement and collecting the results
+def measure(meas_config) -> list:
+    '''Function that controlls the serial measurement and returns the results
     Args:
-        sent_data_size: number of bytes sent
-        num_meas: repetition time of the measurement
+        meas_config: configuration parameters of the measurement
     '''
-    response = []
-    # Set up the serial connection
-    with serial.Serial(serial_config.port, serial_config.baud) as ser:
-        # start char
-        ser.write(meas_direction.encode('ascii')) #'r' or 's'
-        response.append(ser.readline())
-        # number of measurement repetition
-        string_to_send = f'{num_meas}\r'.encode('ascii')
-        ser.write(string_to_send)
-        response.append(ser.readline())
-        # measured data size
-        string_to_send = f'{sent_data_size}\r'.encode('ascii')
-        ser.write(string_to_send)
-        response.append(ser.readline())
-        for _ in range(num_meas):
-            response.append(ser.readline())
+    try:
+        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD,
+                            timeout=SERIAL_TIMEOUT)
+    except Exception as err:
+        print('Error while opening serial: ', err)
+    else:
+        with ser:
+            # reset connection
+            ser.reset_input_buffer()
+            ser.write(SEND_LINE_END.encode('ascii'))
+            ser.read_until(b'>')
+
+            # configure measurement
+            string_to_send = 'direction ' \
+                           + meas_config['direction'] \
+                           + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send) #'r' or 's'
+            resp = ser.readline() # readline reads until \n
+
+            string_to_send = 'clk ' \
+                        + str(meas_config['m7_clk'] * 1000000) \
+                        + ' ' \
+                        + str(meas_config['m4_clk'] * 1000000) \
+                        + SEND_LINE_END # converted to Hz
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+
+            string_to_send = 'repeat ' \
+                           + str(meas_config['repeat']) \
+                           + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+            
+            string_to_send = 'datasize ' \
+                           + str(meas_config['datasize']) \
+                           + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+
+            string_to_send = 'mem ' \
+                           + str(meas_config['mem']) \
+                           + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+
+            string_to_send = 'cache ' \
+                           + str(meas_config['cache']) \
+                           + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+
+            # start measurement
+            string_to_send = 'start' + SEND_LINE_END
+            string_to_send = string_to_send.encode('ascii')
+            ser.write(string_to_send)
+            resp = ser.readline()
+
+            # read measured values
+            ser.timeout = None # block indefinitely
+            response = ser.read_until(b'>') \
+                          .removesuffix(b'>') \
+                          .decode('ascii')
+    assert(len(response.splitlines()) == meas_config['repeat'] + 1)
     return response
 
-def write_meas_to_file(dir_prefix, response, sent_data_size, num_meas,\
-                       timer_clock, direction):
+def write_meas_to_file(dir_prefix, response, meas_config):
     '''Function for writing the measurement results similarly to putty
     Args:
         timer_clock: timer clock frequency in MHz
@@ -47,16 +94,12 @@ def write_meas_to_file(dir_prefix, response, sent_data_size, num_meas,\
         sent_data_size: number of bytes sent
         num_meas: repetition count of the measurement
         direction: 'r' or 's' for the direction of the IPC communication'''
-    filename = f'meas{sent_data_size}.log'
+    filename = f'meas_{meas_config["datasize"]}.csv'
     fullpath = os.path.join(dir_prefix, filename)
-    MODE = 'wb' if os.path.exists(fullpath) else 'xb'
-    with open(fullpath, MODE) as file:
+    MODE = 'w' if os.path.exists(fullpath) else 'x'
+    with open(fullpath, MODE, encoding='utf-8') as file:
         # header
-        direction_info = 'M7 to M4' if 's' == direction else 'M4 to M7'
-        file.write(f'Measurement repeated {num_meas} times, measured sending ' \
-                f'of {sent_data_size} bytes from {direction_info}, timer clock:' \
-                f'{timer_clock} MHz\n'.encode('ascii'))
-        file.writelines(response)
+        file.write(response)
     print(f'written to {filename}')
 
 def read_meas_from_files(sizes, dir_prefix,
@@ -154,30 +197,43 @@ def upper_lower_from_minmax(mean_min_max):
 
 def main():
     '''Measuring for several different sizes, saving the result to file'''
-    serial_config = SerialConfig('COM5', 115200, 8, 'N', 1) 
-    num_meas = 1024
+    # num_meas = 1024
 
     sizes_short = [1 if x==0 else 16*x for x in range(17)]
-    sizes_long = [1 if x==0 else 1024*x for x in range(16)] + [512, 1536, 16380]
+    sizes_long = [1 if x==0 else 1024*x for x in range(16)] + [512, 1536, 16376]
     sizes_max = [16380] # actual size is 16376
     #config begin
-    memory = 'D3_tmp'
-    sizes = [1, 256, 4096, 16380]#sizes_long[1:] + sizes_short
-    meas_directions = ['r', 's']
-    m7_clk = 120
-    m4_clk = 120
-    #config end
-    timer_clock = m4_clk
+    caches = ['none', 'i', 'd', 'id']
+    mems = ['D1', 'D2', 'D3']
+    datasizes = [1, 256, 4096, 16380]#sizes_long[1:] + sizes_short
+    directions = ['r', 's']
+    m7_clks = 120
+    m4_clks = 120
+    # todo itertools.product
 
-    for direction in meas_directions:
-        for sent_data_size in sizes:
-            dir_prefix = f'meas_{direction}_{m7_clk}_{m4_clk}' #'tmp_meas'
-            dir_prefix = os.path.join(MEASUREMENTS_PATH, memory, dir_prefix)
-            if not os.path.exists(dir_prefix):
-                os.makedirs(dir_prefix)
-            response = measure(num_meas, sent_data_size, serial_config, direction)
-            write_meas_to_file(dir_prefix, response, sent_data_size, num_meas, \
-                            timer_clock, direction)
+
+    # for direction in meas_directions:
+    #     for sent_data_size in sizes:
+    meas_config = {
+        'direction': 'r',
+        'm7_clk': 60,
+        'm4_clk': 60,
+        'repeat': 256,
+        'datasize': 16376,
+        'mem': 'D1',
+        'cache': 'none',
+    }
+    dir_prefix = 'meas_{0}_{1}_{2}' \
+                    .format(meas_config['direction'],
+                            meas_config['m7_clk'],
+                            meas_config['m4_clk'])
+    dir_prefix = os.path.join(MEASUREMENTS_PATH,
+                            meas_config["mem"] + '_' + meas_config['cache'],
+                            dir_prefix)
+    if not os.path.exists(dir_prefix):
+        os.makedirs(dir_prefix)
+    response = measure(meas_config)
+    write_meas_to_file(dir_prefix, response, meas_config)
 
 if __name__ == '__main__':
     main()

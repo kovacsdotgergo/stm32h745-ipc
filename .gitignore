@@ -2,7 +2,7 @@ test/build
 *.vscode
 
 visu/venv
-visu/__pycache__
+**/__pycache__
 
 # keeping folder structure
 visu/figures/*
