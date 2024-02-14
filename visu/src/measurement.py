@@ -1,7 +1,11 @@
 import os
+import itertools
+import operator as op
+import collections
+
 import serial
 import numpy as np
-import itertools
+import pandas as pd
 
 from setup_paths import *
 
@@ -10,10 +14,11 @@ SERIAL_TIMEOUT = 1.0
 SERIAL_BAUD = 115200
 SERIAL_PORT = 'COM5'
 
-def measure(meas_config) -> list:
-    '''Function that controlls the serial measurement and returns the results
+def measure(meas_config) -> str:
+    '''Function that controls the serial measurement and returns the results
     Args:
         meas_config: configuration parameters of the measurement
+    Returns: the response string
     '''
     try:
         ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD,
@@ -36,9 +41,9 @@ def measure(meas_config) -> list:
             resp = ser.readline() # readline reads until \n
 
             string_to_send = 'clk ' \
-                        + str(meas_config['m7_clk'] * 1000000) \
+                        + str(meas_config['clkM7'] * 1000000) \
                         + ' ' \
-                        + str(meas_config['m4_clk'] * 1000000) \
+                        + str(meas_config['clkM4'] * 1000000) \
                         + SEND_LINE_END # converted to Hz
             string_to_send = string_to_send.encode('ascii')
             ser.write(string_to_send)
@@ -83,157 +88,226 @@ def measure(meas_config) -> list:
             response = ser.read_until(b'>') \
                           .removesuffix(b'>') \
                           .decode('ascii')
-    assert(len(response.splitlines()) == meas_config['repeat'] + 1)
+    assert len(response.splitlines()) == meas_config['repeat'] + 1
     return response
 
-def write_meas_to_file(dir_prefix, response, meas_config):
+def write_meas_to_file(response, meas_config, base_dir=None): # todo add base dir
     '''Function for writing the measurement results similarly to putty
     Args:
-        timer_clock: timer clock frequency in MHz
-        response: measurement data
-        sent_data_size: number of bytes sent
-        num_meas: repetition count of the measurement
-        direction: 'r' or 's' for the direction of the IPC communication'''
-    filename = f'meas_{meas_config["datasize"]}.csv'
-    fullpath = os.path.join(dir_prefix, filename)
-    MODE = 'w' if os.path.exists(fullpath) else 'x'
-    with open(fullpath, MODE, encoding='utf-8') as file:
-        # header
+        response: measurement data as a string
+        meas_config: dict, measurement configuration parameters'''
+    dir_prefix, filename = get_path_for_meas(meas_config, base_dir)
+    os.makedirs(os.path.join(MEASUREMENTS_PATH, dir_prefix), exist_ok=True)
+
+    path = os.path.join(MEASUREMENTS_PATH, dir_prefix, filename)
+    with open(path, 'w', encoding='utf-8') as file:
         file.write(response)
-    print(f'written to {filename}')
+    print(f'written to {path}') # todo might log
 
-def read_meas_from_files(sizes, dir_prefix,
-                         filename_prefix='meas') -> list[list]:
-    '''Read all files for the all data sizes
+def config_to_config_list(meas_configs):
+    '''Makes a list that contains the cartesian product of all
+    configurations from the given dict
+    
     Args:
-        sizes: list of sizes to be measured
-        dir_prefix: folder of the measurement files
-        filename_prefix: common first part of the files containing the measurement values
-    Returns: a list of lists that contain all the measurement values'''
-    filenames = [os.path.join(dir_prefix, f'{filename_prefix}{x}.log') for x in sizes]
-    all_meas_values = []
-    for i, filename in enumerate(filenames):
-        # cutting the expected datasize from the filename
-        buffer_len = sizes[i]
+        meas_configs: dict of lists of all config parameters'''
+    # product of values
+    config_values_list = itertools.product(*meas_configs.values())
+    meas_config_list = [
+        {k: v for k, v in zip(meas_configs.keys(), config_values)}
+        for config_values
+        in config_values_list] # remaking into meas_config dict form
+    meas_config_list = [x for x in meas_config_list 
+                        if x['clkM4'] <= x['clkM7']] # valid clk pair
+    return meas_config_list
 
-        cur_meas_values = []
-        with open(filename, 'r', encoding='ascii') as file:
-            file.readline() # header
-            file.readline() # s
-            meas_length = int(file.readline()) # length of the measurement
-            file.readline() # empty line
-            read_buffer_len = int(file.readline())
-            if read_buffer_len != buffer_len:
-                print('Wrong buffer size')
-            file.readline() # empty line, could be left out
-            for line in file:
-                line = line.strip() # strip line ending
-                if line: # if not empty line
-                    line = line.split(sep=' ')[0]
-                    cur_meas_values.append(int(line))
-        if len(cur_meas_values) != meas_length: # read data and expected length
-            print('Wrong file len')
-        all_meas_values.append(cur_meas_values)
-    return all_meas_values
+def group_config_except(config_list: list[dict], blacklist:list[str]):
+    '''Groups the dicts in the config_list, except for the keywords given in blacklist'''
+    assert 0 < len(config_list)
+    key = op.itemgetter(*[k for k in config_list[0] if k not in blacklist])
+    s = sorted(config_list, key=key)
+    groups = []
+    for _, g in itertools.groupby(s, key):
+        blacklist_vals = collections.defaultdict(set)
+        for config_dict in g:
+            for k in blacklist:
+                blacklist_vals[k].add(config_dict[k])
+        meas_configs = config_dict.copy()
+        for k in blacklist_vals:
+            blacklist_vals[k] = sorted(list(blacklist_vals[k]))
+        meas_configs.update(dict(blacklist_vals))
+        groups.append(meas_configs)
+    return groups
 
-def get_and_calc_meas(timer_clock, dir_prefix, sizes, meas_type):
+def check_meas_content(meas_config: dict, content: pd.DataFrame) -> bool:
+    '''Checks if the content is in sync with the meas configuration 
+    parameters'''
+    if (content['mem'][0] == meas_config['mem']
+        and content['cache'][0] == meas_config['cache']
+        and content['datasize'][0] == meas_config['datasize']
+        and content['clkM4'][0] / 1_000_000 == meas_config['clkM4'] # MHz
+        and content['clkM7'][0] / 1_000_000 == meas_config['clkM7']
+        and (content['direction'][0][0] == meas_config['direction'] # abbreviation is the first letter
+             or content['direction'][0] == meas_config['direction'])
+        and content['repeat'][0] == meas_config['repeat']
+        and content['time'].size == meas_config['repeat']):
+        return True
+    else:
+        return False
+
+def get_path_for_meas(meas_config:dict, base_dir=None,
+                      filename_prefix='meas_', ext='.csv'):
+    '''Returns the path to the measurement file, relative to 
+    MEASUREMENT_PATH
+    
+    Args:
+        meas_config: dict, config parameters
+        base_dir: base directory relative to MEASUREMENT_PATH
+        filename_prefix: filename prefix of the files storing the 
+            measurements
+        ext: file extension
+        
+    Returns: 
+        dir_prefix: directories relative to MEASUREMENT_PATH
+        filename: filename to be used'''
+    filename = filename_prefix + str(meas_config['datasize']) + ext
+    dir_prefix = (f"meas_{meas_config['direction']}"
+                  f"_{meas_config['clkM7']}"
+                  f"_{meas_config['clkM4']}")
+    dir_prefix = os.path.join(f'{meas_config["mem"]}_{meas_config["cache"]}',
+                              dir_prefix)
+    if base_dir is not None:
+        dir_prefix = os.path.join(base_dir, dir_prefix)
+    return dir_prefix, filename
+
+def read_meas_from_file(
+        meas_config: dict,
+        base_dir=None
+        ) -> tuple[np.ndarray, int]: # todo add the offsets
+    '''Returns the measurement values as a numpy array to the given 
+    measurement config
+
+    Args:
+        meas_config: dict of the configuration parameters of the meas
+        base_dir: base directory relative to MEASUREMENT_PATH
+        
+    Returns:
+        meas_values: ndarray of measurement values
+        timer: timer clk [MHz]'''
+    dir_prefix, filename = get_path_for_meas(meas_config, base_dir)
+    path = os.path.join(MEASUREMENTS_PATH, dir_prefix, filename)
+    content = pd.read_csv(path, encoding='utf-8')
+    assert check_meas_content(meas_config, content)
+    return content['time'].to_numpy(), content['timer'][0] / 1_000_000
+
+def read_meas_from_files(
+        meas_configs,
+        base_dir=None
+        ) -> tuple[list[np.ndarray], list[int], list[dict]]:
+    '''Read all files for all possible configurations
+
+    Args:
+        meas_configs: dict of lists, cartesian product of the values will 
+            be used
+        base_dir: base directory relative to MEASUREMENT_PATH
+
+    Returns: 
+        all_meas_values: list of the measurements
+        timers: list of timer clks used for time measurement [MHz]
+        meas_config_list: corresponding dict of configs'''
+    config_values_list = itertools.product(*meas_configs.values()) # product of values
+    meas_config_list = [
+        {k: v for k, v in zip(meas_configs.keys(), config_values)}
+        for config_values
+        in config_values_list] # remaking into meas_config dict form
+    meas_config_list = [x for x in meas_config_list 
+                        if x['clkM4'] <= x['clkM7']] # invalid clk pair
+    all_meas_values, timers = [], []
+    for meas_config in meas_config_list:
+        meas_values, timer = read_meas_from_file(meas_config,
+                                                 base_dir)
+        all_meas_values.append(meas_values)
+        timers.append(timer)
+    return all_meas_values, timers, meas_config_list
+
+def get_and_calc_meas(meas_configs, meas_type, base_dir=None):
     '''Reads measurement values (mean, min, max) and calculates datarates
         or latencies
 
     Args:
-        timer_clock: timer clock frequency in [MHz]
-        dir_prefix: name of the directory
-        sizes: measured message sizes
+        meas_configs: dict of lists of configuration parameters
         meas_type: 'datarate' or 'latency'
+        base_dir: base directory relative to MEASUREMENT_PATH
 
     Returns:
-        np.array(mean, min, max), shape: (3, len(sizes)) [Mbyte/s]'''
-    all_meas_values = np.array(read_meas_from_files(sizes, dir_prefix))
+        datarates/latencies: np.array(mean, min, max), 
+            shape: (3, len(sizes)) [Mbyte/s]
+        meas_config_list: list of config dicts'''
+    (all_meas_values,
+        timers,
+        meas_config_list) = read_meas_from_files(meas_configs, base_dir)
+    all_meas_values = np.vstack(all_meas_values)
+    timers = np.asarray(timers)
+    sizes = [x['datasize'] for x in meas_config_list]
     if 'datarate' == meas_type:
-        data_min = sizes / np.max(all_meas_values, axis=1) * timer_clock # Mbyte/s
-        data_max = sizes / np.min(all_meas_values, axis=1) * timer_clock # Mbyte/s
-        data_mean = sizes / np.mean(all_meas_values, axis=1) * timer_clock # Mbyte/s
+        data_min = sizes / np.max(all_meas_values, axis=1) * timers # Mbyte/s
+        data_max = sizes / np.min(all_meas_values, axis=1) * timers # Mbyte/s
+        data_mean = sizes / np.mean(all_meas_values, axis=1) * timers # Mbyte/s
     elif 'latency' == meas_type:
-        data_mean = np.mean(all_meas_values, axis=1) / timer_clock # us
-        data_min = np.min(all_meas_values, axis=1) / timer_clock # us
-        data_max = np.max(all_meas_values, axis=1) / timer_clock # us
+        data_mean = np.mean(all_meas_values, axis=1) / timers # us
+        data_min = np.min(all_meas_values, axis=1) / timers # us
+        data_max = np.max(all_meas_values, axis=1) / timers # us
     else:
-        raise RuntimeError('type not datarate of latency')
-    return np.array((data_mean, data_min, data_max))
-
-def get_all_latencies(clocks, sizes, meas_num=1024,\
-                      dir_prefix_without_clk='meas_'):
-    '''Reads all measurement values for each clk and size
-    Args:
-        clocks: list of tuple of clks (m7, m4)
-        sizes: list of sizes
-        meas_num: number of measurements in each file
-        dir_prefix_without_clk: dir prefix without the clks 
-            e.g. meas_ in case of meas_72_72
-    Returns:
-        np.array() with size (len(clocks), len(sizes), num_meas)'''
-    all_latencies = np.empty((0, len(sizes), meas_num))
-    for m7, m4 in clocks:
-        new_meas_values = np.array( \
-            read_meas_from_files(sizes, f'{dir_prefix_without_clk}{m7}_{m4}'))
-        new_meas_values = np.expand_dims(new_meas_values, axis=0)
-        all_latencies = np.concatenate(
-            (all_latencies, new_meas_values / m4), axis=0) #us
-    return all_latencies
+        raise RuntimeError('type is neither datarate nor latency')
+    return np.asarray((data_mean, data_min, data_max)), meas_config_list
 
 def upper_lower_from_minmax(mean_min_max):
     '''Calculates lower and upper error from min and max
     Args:
-        np.array of shape (x, 3, y), holding mean, min, max     
+        np.array of shape (3, y), holding mean, min, max     
     Returns:
-        np.array of shape (x, 3, y), holding mean, lower error, upper error
+        np.array of shape (3, y), holding mean, lower error, upper error
     '''
-    assert len(mean_min_max.shape) == 3 and mean_min_max.shape[1] == 3
+    assert len(mean_min_max.shape) == 2 and mean_min_max.shape[0] == 3
     mean_lower_upper = np.ndarray(mean_min_max.shape)
-    mean_lower_upper[:, 0] = mean_min_max[:, 0] # mean
-    mean_lower_upper[:, 1] = mean_min_max[:, 0] - mean_min_max[:, 1] # mean - min
-    mean_lower_upper[:, 2] = mean_min_max[:, 2] - mean_min_max[:, 0] # max - mean
+    mean_lower_upper[0, :] = mean_min_max[0, :] # mean
+    mean_lower_upper[1, :] = mean_min_max[0, :] - mean_min_max[1, :] # mean - min
+    mean_lower_upper[2, :] = mean_min_max[2, :] - mean_min_max[0, :] # max - mean
     return mean_lower_upper
 
 def main():
     '''Measuring for several different sizes, saving the result to file'''
     # num_meas = 1024
 
-    sizes_short = [1 if x==0 else 16*x for x in range(17)]
-    sizes_long = [1 if x==0 else 1024*x for x in range(16)] + [512, 1536, 16376]
-    sizes_max = [16380] # actual size is 16376
-    #config begin
-    caches = ['none', 'i', 'd', 'id']
-    mems = ['D1', 'D2', 'D3']
-    datasizes = [1, 256, 4096, 16380]#sizes_long[1:] + sizes_short
-    directions = ['r', 's']
-    m7_clks = 120
-    m4_clks = 120
-    # todo itertools.product
-
-
-    # for direction in meas_directions:
-    #     for sent_data_size in sizes:
-    meas_config = {
-        'direction': 'r',
-        'm7_clk': 60,
-        'm4_clk': 60,
-        'repeat': 256,
-        'datasize': 16376,
-        'mem': 'D1',
-        'cache': 'none',
+    pilot_sizes = [1, 512, 16376]
+    sizes =  ([1]
+              + [16*x for x in range(1, 17)]
+              + [512, 1024, 1536]
+              + [1024*x for x in range(2, 16)] + [16376])
+    
+    meas_configs = {
+            'direction': ['r', 's'],
+            'clkM7': [60, 480],
+            'clkM4': [60, 240],
+            'repeat': [8192],
+            'datasize': pilot_sizes,
+            'mem': ['D1', 'D2', 'D3'],
+            'cache': ['none', 'id'],
     }
-    dir_prefix = 'meas_{0}_{1}_{2}' \
-                    .format(meas_config['direction'],
-                            meas_config['m7_clk'],
-                            meas_config['m4_clk'])
-    dir_prefix = os.path.join(MEASUREMENTS_PATH,
-                            meas_config["mem"] + '_' + meas_config['cache'],
-                            dir_prefix)
-    if not os.path.exists(dir_prefix):
-        os.makedirs(dir_prefix)
-    response = measure(meas_config)
-    write_meas_to_file(dir_prefix, response, meas_config)
+    # meas_configs = {
+    #         'direction': ['r', 's'],
+    #         'clkM7': [60, 120, 240, 480],
+    #         'clkM4': [60, 120, 240],
+    #         'repeat': [256],
+    #         'datasize': sizes,
+    #         'mem': ['D1', 'D2', 'D3'],
+    #         'cache': ['none', 'i', 'd', 'id'],
+    # }
+    base_dir = 'pilot'
+
+
+    for meas_config in config_to_config_list(meas_configs):
+        response = measure(meas_config)
+        write_meas_to_file(response, meas_config, base_dir)
 
 if __name__ == '__main__':
     main()

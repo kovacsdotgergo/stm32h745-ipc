@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 from setup_paths import *
-import measurement
+import measurement as meas
 import visu_common
 
 def histogram(raw_meas, title):
@@ -39,25 +39,42 @@ def histogram_intervals(raw_meas, title, std_center=False):
         plt.xlim(mean-d*std, mean+d*std)
     plt.ylim(5e-1, 1e5)
 
+def time_progression(raw_meas, title):
+    '''Plots the measured values as a function of the indices'''
+    plt.title(title)
+    plt.ylabel('Latency in # of clks')
+    plt.xlabel('Meas index')
+    plt.plot(np.arange(len(raw_meas)), raw_meas)
+    plt.ylim(raw_meas.min(), raw_meas.max())
+    plt.grid()
+
 def main():
     'Main functions, that draws the histogram of the pilot measurements'
-    mems = visu_common.get_mems(PILOT_PATH)
-    for mem in mems:
-        dir_prefix = os.path.join(PILOT_PATH, mem)
+    base_dir = 'pilot'
+    meas_configs = {
+        'direction': ['r', 's'],
+        'clkM7': [60, 480],
+        'clkM4': [60],
+        'repeat': [8192],
+        'datasize': [16376],
+        'mem': ['D1', 'D2', 'D3'],
+        'cache': ['none', 'id'],
+    }
 
-        directions = ['s', 'r']
-        for direction in directions:
-            clocks = visu_common.get_clocks_in_folder(dir_prefix, prefix=f'meas_{direction}_')
-            for m7, m4 in clocks:
-                measurement_folder = os.path.join(dir_prefix, f'meas_{direction}_{m7}_{m4}')
-                sizes = [16380] #visu_common.get_sizes(measurement_folder)
-                raw = measurement.read_meas_from_files(sizes, measurement_folder)
+    raw_list, _, conf_list = meas.read_meas_from_files(meas_configs,
+                                                       base_dir)
 
-                # for raw_per_size, size in raw, sizes:
-                plt.figure()
-                dir_txt = 'M7 to M4' if direction=='s' else 'M4 to M7'
-                title = f'Size:{sizes[0]} B, M7: {m7} MHz, M4: {m4} MHz, {dir_txt}'
-                histogram_intervals(raw, title)
+    for raw, conf in zip(raw_list, conf_list):
+        plt.figure()
+        dir_txt = 'M7 to M4' if conf['direction']=='s' else 'M4 to M7'
+        title = (f'Size:{conf["datasize"]} B, '
+                f'M7: {conf["clkM7"]} MHz, '
+                f'M4: {conf["clkM4"]} MHz, '
+                f'{dir_txt}, '
+                f'{conf["mem"]}_{conf["cache"]}')
+        histogram_intervals(raw, title)
+        plt.figure()
+        time_progression(raw, title)
     plt.show()
 
 if __name__ == '__main__':
