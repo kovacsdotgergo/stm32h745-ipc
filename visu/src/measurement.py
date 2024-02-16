@@ -284,25 +284,25 @@ def main():
               + [512, 1024, 1536]
               + [1024*x for x in range(2, 16)] + [16376])
     
-    meas_configs = {
-            'direction': ['r', 's'],
-            'clkM7': [60, 480],
-            'clkM4': [60, 240],
-            'repeat': [8192],
-            'datasize': pilot_sizes,
-            'mem': ['D1', 'D2', 'D3'],
-            'cache': ['none', 'id'],
-    }
     # meas_configs = {
     #         'direction': ['r', 's'],
-    #         'clkM7': [60, 120, 240, 480],
-    #         'clkM4': [60, 120, 240],
-    #         'repeat': [256],
-    #         'datasize': sizes,
+    #         'clkM7': [60, 480],
+    #         'clkM4': [60, 240],
+    #         'repeat': [8192],
+    #         'datasize': pilot_sizes,
     #         'mem': ['D1', 'D2', 'D3'],
-    #         'cache': ['none', 'i', 'd', 'id'],
+    #         'cache': ['none', 'id'],
     # }
-    base_dir = 'pilot'
+    meas_configs = {
+            'direction': ['r', 's'],
+            'clkM7': [60, 120, 240, 480],
+            'clkM4': [60, 120, 240],
+            'repeat': [256],
+            'datasize': sizes,
+            'mem': ['D1', 'D2', 'D3'],
+            'cache': ['none', 'i', 'd', 'id'],
+    }
+    base_dir = 'v1_O3'
 
 
     for meas_config in config_to_config_list(meas_configs):

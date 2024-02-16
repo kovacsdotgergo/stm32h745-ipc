@@ -1,10 +1,12 @@
+import os
+import itertools
+
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
-import os
 
 from setup_paths import *
-import measurement
+import measurement as meas
 import visu_common
 import linear_model
 
@@ -38,12 +40,12 @@ def errorbar_3d(clocks, data, ax, label, color):
     ''' 3d plot without figure and annotation
     Inputs:
     clocks: list of (m7, m4) clocks
-    data: list of (mean, min, max) measurements
+    data: ndarray of (mean, min, max) measurements of shape (3, len(clocks))
     ax: subplot ax'''
-    data = measurement.upper_lower_from_minmax(data)
+    data = meas.upper_lower_from_minmax(data)
     data = data.squeeze()
-    mean = data[:, 0]
-    err = data[:, (1, 2)].T
+    mean = data[0, :]
+    err = data[(1, 2), :]
     m7, m4 = zip(*clocks)
     # plot the data with error bars
     return ax.errorbar(m7, m4, mean, zerr=err, 
@@ -114,7 +116,7 @@ def final3d_foreach(size, mems, direction, ax, meas_type='latency',
             dir_prefix = os.path.join(MEASUREMENTS_PATH,
                                       mem, f'meas_{direction}_{m7}_{m4}')
             # timer clock is always the same as the m4 core's clock
-            data[i] = measurement.get_and_calc_meas(m4, dir_prefix, size, meas_type)
+            data[i] = meas.get_and_calc_meas(m4, dir_prefix, size, meas_type)
         errorbar_3d(clocks, data, ax, mem, cmap[color_idx])
         
             # Predictions by the model
@@ -125,44 +127,56 @@ def final3d_foreach(size, mems, direction, ax, meas_type='latency',
 
 def main():
     '''Reading in measurements, calculating mean, std then visualizing'''
-    size = [64] # list needed for read_meas_from_files
-    mems = visu_common.get_mems(MEASUREMENTS_PATH, r'D3_idcache_mpu_ncacheable(_release)?')
     meas_type = 'latency'
-    clock_lambda = lambda m7, m4: m4 >= 60
+    base_dir = 'v0_O0'
+    meas_configs = {
+        'direction': ['r', 's'],
+        'clkM7': [60, 120, 240, 480],
+        'clkM4': [60, 120, 240],
+        'repeat': [256],
+        'datasize': [16376],
+        'mem': ['D1', 'D2', 'D3'],
+        'cache': ['id'],
+    }
     if_cut = False
-    model_path = os.path.join(MODELS_PATH, 'models.json')
+    model_path = os.path.join(MODELS_PATH, base_dir, 'models_long.json')
 
     cmap = mpl.colormaps['tab10'].colors
     wire_alpha = 0.6
     wire_cmap = mpl.colors.to_rgba_array(cmap, wire_alpha)
 
-    for direction in ['r', 's']:
+
+    config_list = meas.config_to_config_list(meas_configs)
+    config_groups_list = meas.group_config_except(config_list, 
+                                                  ['clkM7', 'clkM4'])
+    for direction in meas_configs['direction']:
         ax = plt.figure().add_subplot(111, projection='3d')
         if meas_type == 'latency':
             ax.view_init(elev=30, azim=45)
         elif meas_type == 'datarate':
             ax.view_init(elev=30, azim=-135)
-        for color_idx, mem in enumerate(mems):
-            clocks = visu_common.get_clocks_in_folder(
-                os.path.join(MEASUREMENTS_PATH, mem),
-                prefix=f'meas_{direction}_', clock_lambda=clock_lambda)
+
+        for clr, (mem, cache) in enumerate(itertools.product(meas_configs['mem'],
+                                                             meas_configs['cache'])):
+            grouped_config = [cfg for cfg in config_groups_list
+                            if cfg['direction'] == direction
+                                and cfg['mem'] == mem
+                                and cfg['cache'] == cache]
+            grouped_config = {k: (v if isinstance(v, list) else [v])
+                              for k, v in grouped_config[0].items()}
             
-            # Measured data
-            data = np.ndarray((len(clocks), 3, len(size)))
-            for i, (m7, m4) in enumerate(clocks):
-                dir_prefix = os.path.join(MEASUREMENTS_PATH, mem,
-                                          f'meas_{direction}_{m7}_{m4}')
-                # timer clock is always the same as the m4 core's clock
-                data[i] = measurement.get_and_calc_meas(m4, dir_prefix, size, meas_type)
-            errorbar_3d(clocks, data, ax, mem, cmap[color_idx])
-            
-                # Predictions by the model
-            model = linear_model.LinearModel(model_path, mem, direction)
-            m7, m4, pred = model.get_grid_for_range(clocks, size, meas_type)
-            model_grid(m7, m4, pred, ax, wire_cmap[color_idx], if_cut=if_cut)
-        setup_ax(ax, direction, meas_type, size)
+            data, data_config_list = meas.get_and_calc_meas(grouped_config, meas_type, base_dir)
+            clocks = [(x['clkM7'], x['clkM4']) for x in data_config_list]
+            errorbar_3d(clocks, data, ax, f'{mem}_{cache}', cmap[clr])
+
+            # Predictions by the model
+            model = linear_model.LinearModel(model_path, mem, cache, direction)
+            m7, m4, pred = model.get_grid_for_range(clocks, meas_configs['datasize'][0], meas_type)
+            model_grid(m7, m4, pred, ax, wire_cmap[clr], if_cut=if_cut)
+        setup_ax(ax, direction, meas_type, meas_configs['datasize'])
     # show graph
     plt.show()
+
 
 if __name__ == '__main__':
     main()

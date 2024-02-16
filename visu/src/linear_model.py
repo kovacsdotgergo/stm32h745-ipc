@@ -4,9 +4,9 @@ import numpy as np
 
 class LinearModel():
     '''Linear model'''
-    def __init__(self, json_path, mem=None, direction=None):
+    def __init__(self, json_path, mem=None, cache=None, direction=None):
         self.load_params(json_path)
-        self.set_model(mem, direction)
+        self.set_model(mem, cache, direction)
 
     def load_params(self, json_path):
         '''Loads the model params from the json file'''
@@ -14,9 +14,9 @@ class LinearModel():
             params = json.load(file)
         self.allparams = params
 
-    def set_model(self, mem, direction):
+    def set_model(self, mem, cache, direction):
         '''Sets the model parameters for mem and direction'''
-        self.params = self.allparams[mem][direction]
+        self.params = self.allparams[mem][cache][direction]
         self.direction = direction
         self.mem = mem
 

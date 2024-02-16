@@ -82,14 +82,14 @@ def main():
         'mem': ['D1', 'D2', 'D3'],
         'cache': ['id'],
     }
-    base_dir = 'v0_O0'
+    base_dir = 'v1_O3'
     meas_type = 'latency'
 
     config_list = meas.config_to_config_list(meas_configs)
     config_groups_list = meas.group_config_except(config_list, ['datasize'])
     for direction in meas_configs['direction']:
         config_groups = [cfg for cfg in config_groups_list 
-                  if cfg['direction'] == direction]
+                         if cfg['direction'] == direction]
         meas_datas = []
         for grouped_config in config_groups:
             grouped_config = {k: (v if isinstance(v, list) else [v])
