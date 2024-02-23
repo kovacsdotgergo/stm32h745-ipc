@@ -50,15 +50,15 @@ def time_progression(raw_meas, title):
 
 def main():
     'Main functions, that draws the histogram of the pilot measurements'
-    base_dir = 'pilot'
+    base_dir = 'v1_O3'
     meas_configs = {
-        'direction': ['r', 's'],
-        'clkM7': [60, 480],
+        'direction': ['s'],
+        'clkM7': [60],
         'clkM4': [60],
-        'repeat': [8192],
+        'repeat': [256],
         'datasize': [16376],
-        'mem': ['D1', 'D2', 'D3'],
-        'cache': ['none', 'id'],
+        'mem': ['D1'],
+        'cache': ['none'],
     }
 
     raw_list, _, conf_list = meas.read_meas_from_files(meas_configs,
@@ -72,8 +72,8 @@ def main():
                 f'M4: {conf["clkM4"]} MHz, '
                 f'{dir_txt}, '
                 f'{conf["mem"]}_{conf["cache"]}')
-        histogram_intervals(raw, title)
-        plt.figure()
+        #histogram_intervals(raw, title)
+        #plt.figure()
         time_progression(raw, title)
     plt.show()
 

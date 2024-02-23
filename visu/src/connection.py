@@ -12,7 +12,8 @@ class SerialConfig:
 
 serial_config = SerialConfig('COM5', 115200, 8, 'N', 1)
 try:
-    with serial.Serial(serial_config.port, serial_config.baud) as ser:
+    with serial.Serial(serial_config.port,
+                       serial_config.baud, timeout=2) as ser:
         # start char
         print('writing')
         ser.write(b'a')

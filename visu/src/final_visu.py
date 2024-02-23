@@ -20,6 +20,14 @@ def if_small_size(size):
 
 def main():
     '''Printing and writing out all final plots'''
+    # Common variables
+    sizes_short = [1] + [16*x for x in range(1, 17)]
+    sizes_long = ([1]
+            + [16*x for x in range(1, 17)]
+            + [512, 1024, 1536]
+            + [1024*x for x in range(2, 16)] + [16376])
+    # todo: when the new results are done, then update this file
+    
     model_path = os.path.join(MODELS_PATH, 'models_long.json')
     mem_regex = r'D[0-9](_idcache_mpu_ncacheable)?'
     linear_model.print_table(model_path, mem_regex)    
@@ -49,22 +57,32 @@ def main():
     
     # =====================================================================
     # initial plot to show difference between release and debug, long and short latency and datarate
-    configs = [{'mem': 'D3', 'clk': (240, 240)},
-               {'mem': 'D3_idcache_mpu_ncacheable_release', 'clk': (240, 240)},
-               {'mem': 'D3_idcache_mpu_ncacheable', 'clk': (240, 240)},]
+    meas_configs = {
+        'direction': ['s'],
+        'clkM7': [240],
+        'clkM4': [240],
+        'repeat': [256],
+        #datasize in loop
+        'mem': ['D2'],
+        'cache': ['none', 'id'],
+    }
+    base_dirs = ['v0_O0', 'v7_O3']
+    meas_type = 'latency'
+
+    # todo
     filename = 'release_and_length_size.pdf'
-    direction = 's'
     i = 0
     plt.figure(figsize=(10, 9.5), layout='tight')
     for meas_type in ['latency', 'datarate']:
-        for size_lambda in [if_small_size, if_large_size]:
+        for sizes in [sizes_short, sizes_long]:
+            meas_configs['datasize'] = sizes
             ax = plt.subplot(221 + i)
-            if size_lambda == if_large_size:
+            if sizes == sizes_long:
                 plt.xticks(np.arange(9)*2048, rotation=12)
             else:
                 plt.xticks(np.arange(5)*64)
-            visu.final_size_func_foreach(configs, meas_type, direction,
-                                        size_lambda=size_lambda, if_model=True)
+            visu.final_size_func_foreach(meas_configs, base_dirs, meas_type,
+                                        if_model=True)
             i = i + 1
     out = os.path.join(FIGURES_PATH, filename)
     if not os.path.exists(out):

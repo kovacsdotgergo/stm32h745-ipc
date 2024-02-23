@@ -2,6 +2,7 @@ import os
 import itertools
 import operator as op
 import collections
+import random
 
 import serial
 import numpy as np
@@ -91,7 +92,7 @@ def measure(meas_config) -> str:
     assert len(response.splitlines()) == meas_config['repeat'] + 1
     return response
 
-def write_meas_to_file(response, meas_config, base_dir=None): # todo add base dir
+def write_meas_to_file(response, meas_config, base_dir=None):
     '''Function for writing the measurement results similarly to putty
     Args:
         response: measurement data as a string
@@ -121,7 +122,10 @@ def config_to_config_list(meas_configs):
     return meas_config_list
 
 def group_config_except(config_list: list[dict], blacklist:list[str]):
-    '''Groups the dicts in the config_list, except for the keywords given in blacklist'''
+    '''Groups the dicts in the config_list, except for the keywords given
+    in blacklist
+    
+    Note: the elements grouped will NOT be lists'''
     assert 0 < len(config_list)
     key = op.itemgetter(*[k for k in config_list[0] if k not in blacklist])
     s = sorted(config_list, key=key)
@@ -207,13 +211,15 @@ def read_meas_from_files(
 
     Args:
         meas_configs: dict of lists, cartesian product of the values will 
-            be used
+            be used (single values don't have to be lists)
         base_dir: base directory relative to MEASUREMENT_PATH
 
     Returns: 
         all_meas_values: list of the measurements
         timers: list of timer clks used for time measurement [MHz]
         meas_config_list: corresponding dict of configs'''
+    meas_configs = {k: (v if isinstance(v, list) else [v])
+                    for  k, v in meas_configs.items()}
     config_values_list = itertools.product(*meas_configs.values()) # product of values
     meas_config_list = [
         {k: v for k, v in zip(meas_configs.keys(), config_values)}
@@ -234,13 +240,14 @@ def get_and_calc_meas(meas_configs, meas_type, base_dir=None):
         or latencies
 
     Args:
-        meas_configs: dict of lists of configuration parameters
+        meas_configs: dict of lists of configuration parameters 
+            (single elements don't have to be lists)
         meas_type: 'datarate' or 'latency'
         base_dir: base directory relative to MEASUREMENT_PATH
 
     Returns:
         datarates/latencies: np.array(mean, min, max), 
-            shape: (3, len(sizes)) [Mbyte/s]
+            shape: (3, len(meas_configs)) [Mbyte/s]
         meas_config_list: list of config dicts'''
     (all_meas_values,
         timers,
@@ -302,10 +309,16 @@ def main():
             'mem': ['D1', 'D2', 'D3'],
             'cache': ['none', 'i', 'd', 'id'],
     }
-    base_dir = 'v1_O3'
+    base_dir = 'v7_O3'
 
+    config_list = config_to_config_list(meas_configs)
+    # to shuffle completely randomly
+    random.shuffle(config_list)
+    # to order some way for effective cache usage
+    config_list = sorted(config_list, 
+                         key=lambda x:(x['cache'], x['mem']))
 
-    for meas_config in config_to_config_list(meas_configs):
+    for meas_config in config_list:
         response = measure(meas_config)
         write_meas_to_file(response, meas_config, base_dir)
 

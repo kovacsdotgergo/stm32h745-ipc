@@ -2,34 +2,43 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import itertools
 
 from setup_paths import *
 import measurement as meas
 import linear_model
-import visu_common
 
 def model_plot(sizes, data, m7, m4, mem, color, if_label=False):
     '''Plot for data in function of size, formatted for the model'''
     plt.plot(sizes, data, alpha=0.5, linestyle='dashed', color=color,
              label=(f'{mem}pred, {m7}, {m4}' if if_label else None))
+    
+def model_plot_from_config(data, config, color, if_label=False):
+    '''Plot for data in function of size, formatted for the model
+    
+    Args:
+        meas_config: grouped configs, 'datasize' has to be a list'''
+    model_plot(config['datasize'], data, config['clkM7'], config['clkM4'],
+               config['mem'], color, if_label=if_label)
 
-def errorbars(configs, sizes, datas, cmap, if_line=True):
+def errorbars(config_list, sizes, datas, cmap, if_line=True, base_dir=None):
     '''Errorbar plot for several clock frequency, latency mesaurement
-    Inputs:
-        configs     list of dicts containgin clk and mem pairs
-        sizes       list of the sent data sizes
-        latencies   array of lantencies (mean, neg_err, pos_err)
+    
+    Args:
+        config_list: list of config dicts
+        sizes: list of the sent data sizes
+        latencies: array of lantencies (mean, neg_err, pos_err)
             for each clk and size [clocks, 3, sizes]
     
     Note: there's no plt.figure call, so it can be used with subplot'''
-    for i, (config, data) in enumerate(zip(configs, datas)):
-        m7, m4 = config['clkM7'], config['clkM4']
+    for i, (config, data) in enumerate(zip(config_list, datas)):
         means = data[0, :]
         errors = data[1:, :]
+        label = (f'{config["mem"]}_{config["cache"]}, '
+                f'{config["clkM7"]}, {config["clkM4"]}')
+        if base_dir is not None:
+            label += ', ' + base_dir
         plt.errorbar(sizes, means, yerr=errors, fmt='o', capsize=5,\
-                     label=f'{config["mem"]}_{config["cache"]}, '
-                           f'{m7}, {m4}', color=cmap[i])
+                     label=label, color=cmap[i])
         if if_line:
             plt.plot(sizes, means, alpha=0.5, color=cmap[i])
 
@@ -44,62 +53,76 @@ def setup_errorbars(meas_type, direction):
     plt.ylabel(f'{meas_type.capitalize()} [{unit}]')
     plt.xlabel('Data size [B]')
 
-def final_size_func_foreach(configs, meas_type, direction, if_model=False,
-                            size_lambda=lambda size: size < 260):
-    '''Draws complete final plot for each config'''
+def final_size_func_foreach(configs, base_dirs, meas_type, if_model=False):
+    '''Draws complete final plot for each config
+    
+    Args:
+        configs: dict of lists, all configs, cartesian product will be used
+        base_dirs: list of base directories to use, cartesian product again
+        meas_type: 'datarate' or 'latency' type of measurement
+        if_model: if prediction of model should be plotted'''
     cmap = mpl.colormaps['tab10'].colors
-    model_path = os.path.join(MODELS_PATH, 'models_long.json')
+    model_filename = 'models_long.json'
+    model_path = os.path.join(MODELS_PATH, base_dirs[0], model_filename)
 
-    mem, (m7, m4) = configs[0]['mem'], configs[0]['clk']
-    size_dir = os.path.join(MEASUREMENTS_PATH, mem, f'meas_r_{m7}_{m4}')
-    # sizes = [1 if x==0 else 16*x for x in range(17)] # [2048*x for x in range(17)]
-    sizes = sorted(visu_common.get_sizes(size_dir, size_lambda=size_lambda))
+    sizes = configs['datasize']
     if if_model:
-        model = linear_model.LinearModel(model_path, mem, direction)
+        model = linear_model.LinearModel(model_path)
 
-    data = np.ndarray((len(configs), 3, len(sizes)))
-    for i, config in enumerate(configs):
-        mem, (m7, m4) = config['mem'], config['clk']
-        dir = os.path.join(MEASUREMENTS_PATH, mem, f'meas_{direction}_{m7}_{m4}')
-        data[i] = meas.get_and_calc_meas(m4, dir, sizes, meas_type)
-        if if_model:
-            model.set_model(mem, direction)
-            pred = model.get_output(m7, m4, sizes, meas_type)
-            model_plot(sizes, pred, m7, m4, mem, cmap[i])
-    data = meas.upper_lower_from_minmax(data)
-    errorbars(configs, sizes, data, cmap, if_line=(not if_model))
-    setup_errorbars(meas_type, direction)
+    config_list = meas.config_to_config_list(configs)
+    grouped_config_list = meas.group_config_except(config_list, ['datasize'])
+    for base_dir in base_dirs:
+        meas_datas = []
+        model_path = os.path.join(MODELS_PATH, base_dir, 
+                                    model_filename)
+        model.load_params(model_path)
+        for i, grouped_config in enumerate(grouped_config_list):
+            data, config_list = meas.get_and_calc_meas(grouped_config, 
+                                                       meas_type, 
+                                                       base_dir)
+            data = meas.upper_lower_from_minmax(data)
+            meas_datas.append(data)
+            if if_model:
+                model.set_model_from_config(grouped_config)
+                pred = model.get_output_from_config(grouped_config, meas_type)
+                model_plot_from_config(pred, grouped_config, cmap[i])
+        errorbars(grouped_config_list, sizes, meas_datas, cmap, if_line=(not if_model), base_dir=base_dir)
+        cmap = cmap[len(grouped_config_list):]
+    setup_errorbars(meas_type, configs['direction'][0])
 
 def main():
     '''Reading in measurements, calculating mean, std then visualizing'''
     cmap = mpl.colormaps['tab10'].colors
+    sizes_short = [1] + [16*x for x in range(1, 17)]
+    sizes_long = ([1]
+              + [16*x for x in range(1, 17)]
+              + [512, 1024, 1536]
+              + [1024*x for x in range(2, 16)] + [16376])
     meas_configs = {
         'direction': ['r', 's'],
-        'clkM7': [60],
+        'clkM7': [480],
         'clkM4': [60],
         'repeat': [256],
-        'datasize': [1] + [16*x for x in range(1, 17)],
-        'mem': ['D1', 'D2', 'D3'],
-        'cache': ['id'],
+        'datasize': sizes_long,
+        'mem': ['D1'],
+        'cache': ['none', 'i', 'd', 'id'],
     }
-    base_dir = 'v1_O3'
-    meas_type = 'latency'
+    base_dir = 'v0_O0'
+    meas_type = 'datarate'
 
     config_list = meas.config_to_config_list(meas_configs)
     config_groups_list = meas.group_config_except(config_list, ['datasize'])
     for direction in meas_configs['direction']:
-        config_groups = [cfg for cfg in config_groups_list 
+        filt_groups = [cfg for cfg in config_groups_list 
                          if cfg['direction'] == direction]
         meas_datas = []
-        for grouped_config in config_groups:
-            grouped_config = {k: (v if isinstance(v, list) else [v])
-                              for k, v in grouped_config.items()}
-            ret, _ = meas.get_and_calc_meas(grouped_config, meas_type, base_dir)
+        for filt_config in filt_groups:
+            ret, _ = meas.get_and_calc_meas(filt_config, meas_type, base_dir)
             ret = meas.upper_lower_from_minmax(ret)
             meas_datas.append(ret)
         plt.figure()
         # list of configs and list of meas_values
-        errorbars(config_groups, meas_configs['datasize'], meas_datas, cmap)
+        errorbars(filt_groups, meas_configs['datasize'], meas_datas, cmap)
         setup_errorbars(meas_type, direction)
 
     # show graph
