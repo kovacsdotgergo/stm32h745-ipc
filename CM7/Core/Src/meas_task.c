@@ -20,12 +20,15 @@ static bool getStartMeas(void) {
  *  blocking wait
 */
 static void printNUart(const char* msg, size_t len) {
-    // transmit with max delay waits in a loop and only returns ok
-    HAL_StatusTypeDef status 
-        = HAL_UART_Transmit(g_measUartHandle, 
-                            (const uint8_t*)msg, len,
-                            HAL_MAX_DELAY);
-    assert(status == HAL_OK);
+    assert(msg != NULL);
+    if (0 < len) {
+        // transmit with max delay waits in a loop and only returns ok
+        HAL_StatusTypeDef status 
+            = HAL_UART_Transmit(g_measUartHandle, 
+                                (const uint8_t*)msg, len,
+                                HAL_MAX_DELAY);
+        assert(status == HAL_OK);
+    }
 }
 
 /**
@@ -127,7 +130,6 @@ void meastask_core1MeasurementTask( void *pvParameters ){
         .setStartMeas = setStartMeas, // function setting static global
     };
 
-    uint8_t uartOutputBuffer[32];
     SemaphoreHandle_t endMeasSemaphore = xSemaphoreCreateBinary();
     ctrl_setEndMeasSemaphore(endMeasSemaphore);
     
@@ -135,15 +137,34 @@ void meastask_core1MeasurementTask( void *pvParameters ){
     
     while(1)
     {
+        // Processing input until start of meas signaled
         processUartControl(&controlFuns);
+
+        // Print header
+        char uartOutBuf[128];
+        size_t uartOutBufLen = sizeof(uartOutBuf) / sizeof(uartOutBuf[0]);
+        csv_assembleResultHeader(uartOutBuf, uartOutBufLen);
+        printUart(uartOutBuf);
+
+        uint32_t clkM7, clkM4;
+        controlFuns.getClks(&clkM7, &clkM4);
+        csv_meas_config conf = {
+            .timer = clkM4,
+            .repeat = controlFuns.getRepeat(),
+            .datasize = controlFuns.getDataSize(),
+            .clkM7 = clkM7,
+            .clkM4 = clkM4,
+            .direction = params_measDirectionToStr(controlFuns.getDirection()),
+            .mem = params_memToStr(controlFuns.getMem()),
+            .cache = params_cacheToStr(controlFuns.getEnabledCache()),
+        };
 
         for(uint32_t i = 0; i < controlFuns.getRepeat(); ++i){
             /* Signaling to the other core*/
             ctrl_generateInterruptIPC_startMeas(); // todo signalPartner func
-            /* Waiting for message or sending message */
             switch (controlFuns.getDirection())
             {
-            case M7_SEND: /* M7 sends the message */
+            case M7_SEND:
                 meastask_measureCore1Sending(controlFuns.getDataSize(),
                                              endMeasSemaphore);
                 break;
@@ -154,15 +175,21 @@ void meastask_core1MeasurementTask( void *pvParameters ){
                 assert(false); // enum value error
                 break;
             }
-            /* Printing measurement result */
+
+            // Print result of measurement
             uint32_t localOffset = time_measureOffset();
-            // Uncomment to observe the offset on the other core
-            // uint32_t m4Offset = time_getSharedOffset();
-            uint32_t runTime = time_getRuntime(localOffset);
-            memset(uartOutputBuffer, 0, sizeof(uartOutputBuffer));
-            sprintf((char*)uartOutputBuffer, "%lu\r\n", runTime);
-            printUart((char*)uartOutputBuffer);
+            csv_meas_result res = {
+                .time = time_getRuntime(localOffset),
+                .m7offset = localOffset,
+                .m4offset = time_getSharedOffset(),
+            };
+            csv_assembleResultLine(uartOutBuf, uartOutBufLen, i, res, conf);
+            printUart(uartOutBuf);
         }
+
+        // Print footer
+        csv_assembleResultFooter(uartOutBuf, uartOutBufLen);
+        printUart(uartOutBuf);
     }
 }
 

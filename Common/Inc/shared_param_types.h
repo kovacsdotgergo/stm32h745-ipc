@@ -30,7 +30,7 @@ typedef enum {
 /** @returns The string equivalent of the params_mem enum*/
 static inline const char* params_memToStr(params_mem mem) {
     switch (mem) {
-    case MEM_D1: return "D1";
+    case MEM_D1: return "D1"; // todo could use inverse functions in commands
     case MEM_D2: return "D2";
     case MEM_D3: return "D3";
     default: assert(false);
@@ -41,8 +41,8 @@ static inline const char* params_memToStr(params_mem mem) {
 /** @returns The string equivalent of the params_direction enum */
 static inline const char* params_measDirectionToStr(params_direction dir) {
     switch (dir) {
-    case M7_SEND: return "M7 send";
-    case M7_RECEIVE: return "M7 receive";
+    case M7_SEND: return "send";
+    case M7_RECEIVE: return "receive";
     default: assert(false);
     }
     return NULL;
@@ -51,10 +51,10 @@ static inline const char* params_measDirectionToStr(params_direction dir) {
 /** @returns The string equivalent of the params_cache enum */
 static inline const char* params_cacheToStr(params_cache cache) {
     switch (cache) {
-    case NO_CACHE: return "no cache";
-    case I_CACHE: return "I cache";
-    case D_CACHE: return "D cache";
-    case ID_CACHE: return "ID cache";    
+    case NO_CACHE: return "none";
+    case I_CACHE: return "i";
+    case D_CACHE: return "d";
+    case ID_CACHE: return "id";    
     default: assert(false);
     }
     return NULL;

@@ -15,6 +15,7 @@
 #include "time_meas.h"
 #include "meas_control.h"
 #include "uart_commands.h"
+#include "csv_formatter.h"
 
 #define MEASTASK_STACK_SIZE (2*configMINIMAL_STACK_SIZE)
 

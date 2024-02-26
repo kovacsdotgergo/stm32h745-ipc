@@ -173,7 +173,7 @@ SECTIONS
   {
     . = ALIGN(4);
     *(.shared_D1)
-    *(.shared)
+    *(SORT_BY_NAME(.shared))
   } > RAM_D1
 
   .shared_D3 0x38000000 :
