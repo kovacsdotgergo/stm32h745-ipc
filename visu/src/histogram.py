@@ -18,17 +18,19 @@ def histogram(raw_meas, title):
     plt.grid()
     plt.legend(loc='upper right')
 
-def histogram_intervals(raw_meas, title, std_center=False):
+def histogram_intervals(raw_meas, title, std_center=False, sample_size=256):
     'Histogram with std and confidence interval for the chosen sample size'
     raw_meas = np.array(raw_meas)
 
     mean = np.mean(raw_meas)
     std = np.std(raw_meas)
-    conf_int = stats.norm.interval(0.95, loc=mean, scale=std/np.sqrt(1024))
+    conf_int = stats.norm.interval(0.95, loc=mean, 
+                                   scale=std/np.sqrt(sample_size))
     plt.axvline(mean, color='red', linestyle='-', label='Mean')
     plt.axvline(mean - std, color='green', linestyle='--', label='Mean ± Std')
     plt.axvline(mean + std, color='green', linestyle='--')
-    plt.axvline(conf_int[0], color='purple', linestyle='-.', label='95% CI for 1024 sample')
+    plt.axvline(conf_int[0], color='purple', linestyle='-.', 
+                label=f'95% CI for {sample_size} sample')
     plt.axvline(conf_int[1], color='purple', linestyle='-.')
     d = 5
     if std_center:
