@@ -20,6 +20,14 @@ void csv_assembleResultLine(char* buf, size_t len, size_t line,
     cursor += strn_utostrn(res.m7offset, &buf[cursor], len - cursor);
     cursor += addStrToBuf(&buf[cursor], ",");
     cursor += strn_utostrn(res.m4offset, &buf[cursor], len - cursor);
+    cursor += addStrToBuf(&buf[cursor], ",");
+    cursor += strn_utostrn(res.approximateSendTime, 
+                           &buf[cursor], len - cursor);
+    cursor += addStrToBuf(&buf[cursor], ",");
+    cursor += strn_utostrn(res.approximateRecvTime, 
+                           &buf[cursor], len - cursor);
+    cursor += addStrToBuf(&buf[cursor], ",");
+    cursor += addStrToBuf(&buf[cursor], res.couldBlock ? "true" : "false");
     // config values
     if (line == 0) { // config values only in the first line
         cursor += addStrToBuf(&buf[cursor], ",");

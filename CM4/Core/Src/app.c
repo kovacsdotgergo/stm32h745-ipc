@@ -53,12 +53,14 @@ void app_measureCore2Recieving(void){
   uint32_t xReceivedBytes, sizeFromMessage;
   static uint8_t recieveBuffer[ MB_MAX_DATA_SIZE ];
 
+  time_setCheckpoint(TIME_BEGIN_BLOCK);
   xReceivedBytes = xMessageBufferReceive( mb_gpCurrentDataMB[DATA_RECV_IDX],
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY );
-  time_endTime(); /* global shared variable */
+  time_setCheckpoint(TIME_END); /* global shared variable */
   time_setSharedOffset();
+
   /* Checking the size and last element of the data */
   sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
   if(xReceivedBytes != sizeFromMessage || 
@@ -78,14 +80,16 @@ void app_measureCore2Sending(uint32_t dataSize){
     sendBuffer[j] = nextValue;
   }
   sprintf((char*)sendBuffer, "%lu", dataSize);
+  // Delay to wait for ohter core to block on message
   vTaskDelay(1/portTICK_PERIOD_MS);
   time_setSharedOffset();
   /* Start measurement */
-  time_startTime();
+  time_setCheckpoint(TIME_START);
   xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX],
                      (void*) sendBuffer,
                      dataSize,
                      mbaDONT_BLOCK);
+  time_setCheckpoint(TIME_END);
   ++nextValue;                     
 }
 

@@ -202,14 +202,15 @@ void meastask_measureCore1Sending(uint32_t dataSize,
         sendBuffer[j] = nextValue;
     }
     sprintf((char*)sendBuffer, "%lu", dataSize);
+    // Delay to wait for other core to block on message
     vTaskDelay(1/portTICK_PERIOD_MS);
     /* Start of measurement and sending the data */
-    time_startTime();
+    time_setCheckpoint(TIME_START);
     xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX], 
                        (void*)sendBuffer,
                        dataSize,
                        mbaDONT_BLOCK );
-    
+    time_setCheckpoint(TIME_AFTER_SEND);
     ++nextValue;
     /* Waiting for the signal from the other core */
     xSemaphoreTake(endMeasSemaphore, portMAX_DELAY);
@@ -220,11 +221,12 @@ void meastask_measureCore1Recieving(void){
     uint32_t recievedBytes, sizeFromMessage;
     static uint8_t recieveBuffer[MB_MAX_DATA_SIZE];
 
+    time_setCheckpoint(TIME_BEGIN_BLOCK);
     recievedBytes = xMessageBufferReceive(mb_gpCurrentDataMB[DATA_RECV_IDX],
                                           recieveBuffer,
                                           sizeof(recieveBuffer),
                                           portMAX_DELAY);
-    time_endTime();
+    time_setCheckpoint(TIME_END);
 
     /* Error checking, size and last element */
     sscanf((char*)recieveBuffer, "%lu", &sizeFromMessage);
