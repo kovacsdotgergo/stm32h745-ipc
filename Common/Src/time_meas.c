@@ -15,7 +15,7 @@ uint32_t time_getSharedOffset() {
     return shOffset;
 }
 
-uint32_t time_getTimeDifference(time_checkpoint begin, time_checkpoint end,
+uint32_t time_getTimeDiff(time_checkpoint begin, time_checkpoint end,
                                 uint32_t localOffset) {
     assert(begin < TIME_NUM_CHECKPOINT && end < TIME_NUM_CHECKPOINT);
     assert(time_checkOrder(begin, end)); 
@@ -28,7 +28,7 @@ uint32_t time_getTimeDifference(time_checkpoint begin, time_checkpoint end,
 }
 
 uint32_t time_getRuntime(uint32_t localOffset) {
-    return time_getTimeDifference(TIME_START, TIME_END, localOffset);
+    return time_getTimeDiff(TIME_START, TIME_END, localOffset);
 }
 
 bool time_checkOrder(time_checkpoint begin, time_checkpoint end) {

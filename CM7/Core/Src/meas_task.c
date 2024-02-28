@@ -141,7 +141,7 @@ void meastask_core1MeasurementTask( void *pvParameters ){
         processUartControl(&controlFuns);
 
         // Print header
-        char uartOutBuf[128];
+        static char uartOutBuf[192]; // static due to large size
         size_t uartOutBufLen = sizeof(uartOutBuf) / sizeof(uartOutBuf[0]);
         csv_assembleResultHeader(uartOutBuf, uartOutBufLen);
         printUart(uartOutBuf);
@@ -182,6 +182,14 @@ void meastask_core1MeasurementTask( void *pvParameters ){
                 .time = time_getRuntime(localOffset),
                 .m7offset = localOffset,
                 .m4offset = time_getSharedOffset(),
+                .approximateSendTime = time_getTimeDiff(TIME_START,
+                                                        TIME_AFTER_SEND,
+                                                        localOffset),
+                .approximateRecvTime = time_getTimeDiff(TIME_AFTER_SEND,
+                                                        TIME_END,
+                                                        localOffset),
+                .couldBlock = time_checkOrder(TIME_BEGIN_BLOCK, 
+                                              TIME_START),
             };
             csv_assembleResultLine(uartOutBuf, uartOutBufLen, i, res, conf);
             printUart(uartOutBuf);
@@ -203,7 +211,7 @@ void meastask_measureCore1Sending(uint32_t dataSize,
     }
     sprintf((char*)sendBuffer, "%lu", dataSize);
     // Delay to wait for other core to block on message
-    vTaskDelay(1/portTICK_PERIOD_MS);
+    vTaskDelay(2/portTICK_PERIOD_MS);
     /* Start of measurement and sending the data */
     time_setCheckpoint(TIME_START);
     xMessageBufferSend(mb_gpCurrentDataMB[DATA_SEND_IDX], 

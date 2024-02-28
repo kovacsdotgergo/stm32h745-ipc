@@ -65,7 +65,7 @@ uint32_t time_getSharedOffset(void);
  * 
  * @returns the runtime between the checkpoints
 */
-uint32_t time_getTimeDifference(time_checkpoint begin, time_checkpoint end,
+uint32_t time_getTimeDiff(time_checkpoint begin, time_checkpoint end,
                                 uint32_t localOffset);
 
 /** @returns the runtime compensated with the local offset and the shared offset */
