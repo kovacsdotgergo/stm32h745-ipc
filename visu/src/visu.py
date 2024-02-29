@@ -11,7 +11,7 @@ def model_plot(sizes, data, m7, m4, mem, color, if_label=False):
     '''Plot for data in function of size, formatted for the model'''
     plt.plot(sizes, data, alpha=0.5, linestyle='dashed', color=color,
              label=(f'{mem}pred, {m7}, {m4}' if if_label else None))
-    
+
 def model_plot_from_config(data, config, color, if_label=False):
     '''Plot for data in function of size, formatted for the model
     
@@ -42,6 +42,15 @@ def errorbars(config_list, sizes, datas, cmap, if_line=True, base_dir=None):
         if if_line:
             plt.plot(sizes, means, alpha=0.5, color=cmap[i])
 
+def mid_errorbar(sizes, data, clr, if_err=False, linestyle='dotted'):
+    '''Plots the middle point during measurement'''
+    means = data[0, :]
+    plt.plot(sizes, means, alpha=0.5, linestyle=linestyle, color=clr)
+    if if_err:
+        errors = data[1:, :]
+        plt.errorbar(sizes, means, yerr=errors, fmt='.', capsize=2,\
+                    color=clr)
+
 def setup_errorbars(meas_type, direction):
     '''Annotate errorbar plot'''
     dir_text = 'Sending from M7 to M4' if direction == 's' else 'Sending from M4 to M7'
@@ -53,7 +62,8 @@ def setup_errorbars(meas_type, direction):
     plt.ylabel(f'{meas_type.capitalize()} [{unit}]')
     plt.xlabel('Data size [B]')
 
-def final_size_func_foreach(configs, base_dirs, meas_type, if_model=False):
+def final_size_func_foreach(configs, base_dirs, meas_type, if_model=False,
+                            if_mid_checkpoint=False):
     '''Draws complete final plot for each config
     
     Args:
@@ -86,7 +96,20 @@ def final_size_func_foreach(configs, base_dirs, meas_type, if_model=False):
                 model.set_model_from_config(grouped_config)
                 pred = model.get_output_from_config(grouped_config, meas_type)
                 model_plot_from_config(pred, grouped_config, cmap[i])
-        errorbars(grouped_config_list, sizes, meas_datas, cmap, if_line=(not if_model), base_dir=base_dir)
+            if if_mid_checkpoint:
+                for typ, style in zip(['approximateSendTime', 
+                                        'approximateRecvTime'],
+                                       ['dotted', 'dashdot']):
+                    data, config_list = meas.get_and_calc_meas(
+                        grouped_config, meas_type, base_dir, 
+                        checkpoint_type=typ)
+                    data = meas.upper_lower_from_minmax(data)
+                    if meas_type == 'datarate':
+                        data /= 2
+                    mid_errorbar(sizes, data, cmap[i], 
+                                 if_err=True, linestyle=style)
+        errorbars(grouped_config_list, sizes, meas_datas, cmap, 
+                  if_line=(not if_model), base_dir=base_dir)
         cmap = cmap[len(grouped_config_list):]
     setup_errorbars(meas_type, configs['direction'][0])
 
@@ -104,11 +127,12 @@ def main():
         'clkM4': [60],
         'repeat': [256],
         'datasize': sizes_long,
-        'mem': ['D1'],
+        'mem': ['D2'],
         'cache': ['none', 'i', 'd', 'id'],
     }
-    base_dir = 'v0_O0'
+    base_dir = 'v8_O3'
     meas_type = 'datarate'
+    if_mid_checkpoint = True
 
     config_list = meas.config_to_config_list(meas_configs)
     config_groups_list = meas.group_config_except(config_list, ['datasize'])
@@ -116,11 +140,23 @@ def main():
         filt_groups = [cfg for cfg in config_groups_list 
                          if cfg['direction'] == direction]
         meas_datas = []
-        for filt_config in filt_groups:
+        plt.figure()
+        for i, filt_config in enumerate(filt_groups):
             ret, _ = meas.get_and_calc_meas(filt_config, meas_type, base_dir)
             ret = meas.upper_lower_from_minmax(ret)
             meas_datas.append(ret)
-        plt.figure()
+            if if_mid_checkpoint:
+                for typ, style in zip(['approximateSendTime', 
+                                        'approximateRecvTime'],
+                                       ['dotted', 'dashdot']):
+                    data, config_list = meas.get_and_calc_meas(
+                        filt_config, meas_type, base_dir, 
+                        checkpoint_type=typ)
+                    data = meas.upper_lower_from_minmax(data)
+                    if meas_type == 'datarate':
+                        data /= 2
+                    mid_errorbar(filt_config['datasize'], data, cmap[i], 
+                                 if_err=True, linestyle=style)
         # list of configs and list of meas_values
         errorbars(filt_groups, meas_configs['datasize'], meas_datas, cmap)
         setup_errorbars(meas_type, direction)

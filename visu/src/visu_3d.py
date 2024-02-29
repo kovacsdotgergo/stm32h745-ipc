@@ -23,9 +23,18 @@ def errorbar_3d(clocks, data, ax, label, color):
     err = data[(1, 2), :]
     m7, m4 = zip(*clocks)
     # plot the data with error bars
-    return ax.errorbar(m7, m4, mean, zerr=err, 
-                       label=label, fmt='o', color=color)
-
+    ax.errorbar(m7, m4, mean, zerr=err, 
+                label=label, fmt='o', color=color)
+    
+def mid_errorbar_3d(clocks, data, ax, color):
+    data = meas.upper_lower_from_minmax(data)
+    data = data.squeeze()
+    mean = data[0, :]
+    err = data[(1, 2), :]
+    m7, m4 = zip(*clocks)
+    # plot the data with error bars
+    ax.errorbar(m7, m4, mean, zerr=err, fmt='.', capsize=2, color=color)
+    
 def setup_ax(ax, direction, meas_type, size):
     '''Sets up all annotation on the 3d plot'''
     ax.set_xlabel('M7 clk [MHz]')
@@ -43,7 +52,7 @@ def setup_ax(ax, direction, meas_type, size):
     ax.set_zlim(0)
     ax.legend()
 
-def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3):
+def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3, linestyle='dashed'):
     '''3d plot without figure and annotation
     Grid for the clocks and using it for a wireframe for pred
     Args:
@@ -60,9 +69,9 @@ def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3):
         m7_edge = m7_grid[mask]
         pred_edge = pred[mask]
         plt.plot(m7_edge, m4_edge, pred_edge, color=color, zorder=2,
-                linestyle='dashed')
+                linestyle=linestyle)
     ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count, ccount=count,
-                      color=color, zorder=2, linestyle='dashed')
+                      color=color, zorder=2, linestyle=linestyle)
 
 def final3d_foreach(meas_configs, base_dir, meas_type, ax, 
                    if_cut=False, linecount=3):
@@ -106,7 +115,9 @@ def final3d_foreach(meas_configs, base_dir, meas_type, ax,
 def main():
     '''Reading in measurements, calculating mean, std then visualizing'''
     meas_type = 'latency'
-    base_dir = 'v6_O3'
+    base_dir = 'v8_O3'
+    if_mid_checkpoint = True
+    if_meas = False
     meas_configs = {
         'direction': ['r', 's'],
         'clkM7': [60, 120, 240, 480],
@@ -139,15 +150,42 @@ def main():
                             if cfg['direction'] == direction
                                 and cfg['mem'] == mem
                                 and cfg['cache'] == cache]
-            
-            data, data_config_list = meas.get_and_calc_meas(grouped_config[0], meas_type, base_dir)
-            clocks = [(x['clkM7'], x['clkM4']) for x in data_config_list]
-            errorbar_3d(clocks, data, ax, f'{mem}_{cache}', cmap[clr])
-
-            # Predictions by the model
-            model = linear_model.LinearModel(model_path, mem, cache, direction)
-            m7, m4, pred = model.get_grid_for_range(clocks, meas_configs['datasize'][0], meas_type)
-            model_grid(m7, m4, pred, ax, wire_cmap[clr], if_cut=if_cut)
+            if if_meas:
+                data, data_config_list = meas.get_and_calc_meas(grouped_config[0], meas_type, base_dir)
+                clocks = [(x['clkM7'], x['clkM4']) for x in data_config_list]
+                errorbar_3d(clocks, data, ax, f'{mem}_{cache}', cmap[clr])
+                # Predictions by the model
+                model = linear_model.LinearModel(model_path, mem, cache, direction)
+                m7, m4, pred = model.get_grid_for_range(clocks, meas_configs['datasize'][0], meas_type)
+                model_grid(m7, m4, pred, ax, wire_cmap[clr], if_cut=if_cut)
+            # Checkpoints
+            if if_mid_checkpoint:
+                for proc, style in zip(['m7', 'm4'], ['dotted', 'dashdot']):
+                    # Measured points
+                    if proc == 'm7':
+                        checkpoint_type = ('approximateSendTime' 
+                                           if direction=='s'
+                                           else 'approximateRecvTime')
+                    else:
+                        checkpoint_type = ('approximateRecvTime' 
+                                           if direction=='s'
+                                           else 'approximateSendTime')
+                    data, data_config_list = meas.get_and_calc_meas(
+                        grouped_config[0], meas_type, base_dir, 
+                        checkpoint_type=checkpoint_type)
+                    clocks = [(x['clkM7'], x['clkM4']) for x
+                              in data_config_list]
+                    mid_errorbar_3d(clocks, data, ax, cmap[clr])
+                    # Model prediction
+                    mid_model_path = os.path.join(MODELS_PATH, base_dir, 
+                                                f'models_{proc}.json')
+                    mid_model = linear_model.LinearModel(mid_model_path,
+                                                         mem, cache,
+                                                         direction)
+                    m7, m4, pred = mid_model.get_grid_for_range(
+                        clocks, meas_configs['datasize'][0], meas_type)
+                    model_grid(m7, m4, pred, ax, wire_cmap[clr], 
+                               if_cut=if_cut, linestyle=style)
         setup_ax(ax, direction, meas_type, meas_configs['datasize'])
     # show graph
     plt.show()
