@@ -319,7 +319,7 @@ def main():
             'mem': ['D1', 'D2', 'D3'],
             'cache': ['none', 'i', 'd', 'id'],
     }
-    base_dir = 'v8_O3'
+    base_dir = 'v13_Ofast'
 
     config_list = config_to_config_list(meas_configs)
     # to shuffle completely randomly

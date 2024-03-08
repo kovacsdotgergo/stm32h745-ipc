@@ -57,7 +57,7 @@ def setup_errorbars(meas_type, direction):
     plt.title(dir_text)
     plt.ylim(0)
     plt.grid()
-    plt.legend(title='Memory, M7, M4 clk [MHz]')
+    plt.legend(title='Memory_cache, M7, M4 clk [MHz]')
     unit = 'us' if meas_type == 'latency' else 'MB/s'
     plt.ylabel(f'{meas_type.capitalize()} [{unit}]')
     plt.xlabel('Data size [B]')

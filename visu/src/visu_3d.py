@@ -44,7 +44,7 @@ def setup_ax(ax, direction, meas_type, size):
             'Latency [us]'
     ax.set_zlabel(zlabel)
     dir_text = 'from M7 to M4' if 's' == direction else 'from M4 to M7'
-    ax.set_title(f'{size[0]} B {dir_text}')
+    ax.set_title(f'{size[0]}B {dir_text}')
     ax.set_xlim([0, 480])
     ax.set_xticks(np.arange(5)*120)
     ax.set_ylim([0, 240])
@@ -52,7 +52,7 @@ def setup_ax(ax, direction, meas_type, size):
     ax.set_zlim(0)
     ax.legend()
 
-def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3, linestyle='dashed'):
+def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3, linestyle='dashed', label=None):
     '''3d plot without figure and annotation
     Grid for the clocks and using it for a wireframe for pred
     Args:
@@ -70,8 +70,14 @@ def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3, linestyle='dashed
         pred_edge = pred[mask]
         plt.plot(m7_edge, m4_edge, pred_edge, color=color, zorder=2,
                 linestyle=linestyle)
-    ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count, ccount=count,
-                      color=color, zorder=2, linestyle=linestyle)
+    if label is None:
+        ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count,
+                          ccount=count, color=color, zorder=2,
+                          linestyle=linestyle)
+    else:
+        ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count,
+                          ccount=count, color=color, zorder=2,
+                          linestyle=linestyle, label=label)
 
 def final3d_foreach(meas_configs, base_dir, meas_type, ax, 
                    if_cut=False, linecount=3):
@@ -120,11 +126,11 @@ def main():
     if_meas = False
     meas_configs = {
         'direction': ['r', 's'],
-        'clkM7': [60, 120, 240, 480],
+        'clkM7': [120, 240, 480],
         'clkM4': [60, 120, 240],
         'repeat': [256],
-        'datasize': [256],
-        'mem': ['D1', 'D2', 'D3'],
+        'datasize': [16376],
+        'mem':  ['D2'],
         'cache': ['none'],
     }
     if_cut = False
@@ -184,8 +190,9 @@ def main():
                                                          direction)
                     m7, m4, pred = mid_model.get_grid_for_range(
                         clocks, meas_configs['datasize'][0], meas_type)
-                    model_grid(m7, m4, pred, ax, wire_cmap[clr], 
-                               if_cut=if_cut, linestyle=style)
+                    model_grid(m7, m4, pred, ax, wire_cmap[clr],
+                               if_cut=if_cut, linestyle=style,
+                               label=f'{proc}, {mem}_{cache}, {base_dir}')
         setup_ax(ax, direction, meas_type, meas_configs['datasize'])
     # show graph
     plt.show()
