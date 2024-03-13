@@ -189,7 +189,7 @@ def read_meas_from_file(
         meas_config: dict,
         base_dir=None,
         checkpoint_type='time'
-        ) -> tuple[np.ndarray, int]: # todo add the offsets
+        ) -> tuple[np.ndarray, int]:
     '''Returns the measurement values as a numpy array to the given 
     measurement config
 

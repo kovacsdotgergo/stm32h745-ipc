@@ -129,28 +129,31 @@ class LinearModel():
         m4 = np.linspace(np.min(m4), np.max(m4), clock_res)
         return m7, m4, self.get_output(m7, m4, size, meas_type)
 
-def print_table(json_path, mem_regex):
+def print_table(json_path, nest=2):
     '''Print latex table from the json file, memories can be filtered with mem_regex'''
-    pattern = regex.compile(pattern=mem_regex)
+    def print_nesting(nest):
+        print(' ' * 4 * nest, end='')
+
+    def print_nested(nest, *args, end='\n', sep=' '):
+        print_nesting(nest)
+        print(*args, end=end, sep=sep)
+
     with open(json_path, 'r') as file:
         params = json.load(file)
 
     for direction in ['r', 's']:
-        print('        \\midrule\n        '
-            + ('M4-M7' if direction=='r' else 'M7-M4')
-            + '& \\multicolumn{4}{ c }{}\\\\\n'
-            '        \\midrule')
-        for k, v in params.items():
-            if pattern.fullmatch(k):
-                print('        ' 
-                    + k.replace('_idcache_mpu_ncacheable', ' gyorsítótárral')
-                    + ' & '
-                    , end='')
-                for i, elem in enumerate(v[direction]):
-                    if i == 3:
-                        print('{:.2f}'.format(elem) + '\\\\')
-                    else:
-                        print("{:.2f}".format(elem) + ' & ', end='')
+        dir_text = ('M4-M7' if direction=='r' else 'M7-M4')
+        print_nested(nest, '\\midrule')
+        print_nested(nest, dir_text + '& \\multicolumn{4}{ c }{}\\\\')
+        print_nested(nest, '\\midrule')
+        for mem in params:
+            for cache in params[mem]:
+                cache_text = ('without cache' 
+                            if cache == 'none'
+                            else f"with {str.upper(cache)} cache")
+                print_nested(nest, f'{mem} {cache_text}', end=' & ')
+                float_params = ['{:.2f}'.format(e) for e in params[mem][cache][direction]]
+                print(*float_params, end='\\\\\n', sep=' & ')
 
 def get_mse(model_out, true_out, axis):
     '''Returns mse between the inputs, mean along the axis'''
