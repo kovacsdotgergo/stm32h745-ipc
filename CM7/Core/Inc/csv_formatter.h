@@ -26,7 +26,10 @@
 #define CSV_MEAS_RESULT_TYPES(X) \
     X(uint32_t, time) \
     X(uint32_t, m7offset) \
-    X(uint32_t, m4offset)
+    X(uint32_t, m4offset) \
+    X(uint32_t, approximateSendTime) \
+    X(uint32_t, approximateRecvTime) \
+    X(bool, couldBlock)
 
 #define X_TO_CSV_STRUCT(type, name) type name;
 typedef struct {

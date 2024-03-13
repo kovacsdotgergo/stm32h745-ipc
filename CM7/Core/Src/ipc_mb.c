@@ -38,7 +38,7 @@ void initIPC_MessageBuffers(void) {
     sensitive to rising edge : Configured only once */
     HAL_EXTI_EdgeConfig(MB1TO2_INT_EXTI_LINE, EXTI_RISING_EDGE);
     /* SW interrupt for message buffer */
-    HAL_NVIC_SetPriority(MB2TO1_INT_EXTI_IRQ, 0xFU, 1U);
+    HAL_NVIC_SetPriority(MB2TO1_INT_EXTI_IRQ, 14U, 0U);
     HAL_NVIC_EnableIRQ(MB2TO1_INT_EXTI_IRQ);
 
     createIPCMessageBuffers();

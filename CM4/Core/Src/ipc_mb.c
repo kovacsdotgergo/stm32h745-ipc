@@ -8,7 +8,7 @@ void initIPC_MessageBuffers(void) {
     HAL_EXTI_EdgeConfig(MB2TO1_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
     /* SW interrupt for message buffer */
-    HAL_NVIC_SetPriority(MB1TO2_INT_EXTI_IRQ, 0xFU, 0U);
+    HAL_NVIC_SetPriority(MB1TO2_INT_EXTI_IRQ, 14U, 0U);
     HAL_NVIC_EnableIRQ(MB1TO2_INT_EXTI_IRQ);
     
     /* m7 core initializes the message buffers */

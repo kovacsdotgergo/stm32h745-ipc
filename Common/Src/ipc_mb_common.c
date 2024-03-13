@@ -1,7 +1,5 @@
 #include "ipc_mb_common.h"
 
-// todo change the magic numbers
-// todo add the sectoin to the name
 #define MB_STORAGE_VARIABLES_DEF(mem) \
     /* Message buffers */ \
     volatile MessageBufferHandle_t \

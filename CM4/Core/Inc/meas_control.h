@@ -17,7 +17,7 @@ void ctrl_initInterrupts(void);
 */
 void ctrl_setStartMeasSemaphore(SemaphoreHandle_t startMeasSemaphore);
 
-void generateInterruptIPC_endMeasurement(void);
+void generateInterruptIPC_endMeas(void);
 void interruptHandlerIPC_startMeas(void);
 
 #endif // MEAS_CONTROL_H

@@ -10,7 +10,7 @@ void ctrl_initInterrupts(void) {
     HAL_EXTI_EdgeConfig(END_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
 
     /* SW interrupt to signal start of meas */
-    HAL_NVIC_SetPriority(START_MEAS_INT_EXTI_IRQ, 0xFU, 1U);
+    HAL_NVIC_SetPriority(START_MEAS_INT_EXTI_IRQ, 14U, 1U);
     HAL_NVIC_EnableIRQ(START_MEAS_INT_EXTI_IRQ);
 }
 
@@ -19,7 +19,7 @@ void ctrl_setStartMeasSemaphore(SemaphoreHandle_t startMeasSemaphore) {
     g_startMeasSemaphore = startMeasSemaphore;
 }
 
-void generateInterruptIPC_endMeasurement(void) {
+void generateInterruptIPC_endMeas(void) {
     generateIT_IPC(END_MEAS_INT_EXTI_LINE);
 }
 

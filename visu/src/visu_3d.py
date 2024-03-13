@@ -23,9 +23,18 @@ def errorbar_3d(clocks, data, ax, label, color):
     err = data[(1, 2), :]
     m7, m4 = zip(*clocks)
     # plot the data with error bars
-    return ax.errorbar(m7, m4, mean, zerr=err, 
-                       label=label, fmt='o', color=color)
-
+    ax.errorbar(m7, m4, mean, zerr=err, 
+                label=label, fmt='o', color=color)
+    
+def mid_errorbar_3d(clocks, data, ax, color):
+    data = meas.upper_lower_from_minmax(data)
+    data = data.squeeze()
+    mean = data[0, :]
+    err = data[(1, 2), :]
+    m7, m4 = zip(*clocks)
+    # plot the data with error bars
+    ax.errorbar(m7, m4, mean, zerr=err, fmt='.', capsize=2, color=color)
+    
 def setup_ax(ax, direction, meas_type, size):
     '''Sets up all annotation on the 3d plot'''
     ax.set_xlabel('M7 clk [MHz]')
@@ -35,7 +44,7 @@ def setup_ax(ax, direction, meas_type, size):
             'Latency [us]'
     ax.set_zlabel(zlabel)
     dir_text = 'from M7 to M4' if 's' == direction else 'from M4 to M7'
-    ax.set_title(f'{size[0]} B {dir_text}')
+    ax.set_title(f'{size[0]}B {dir_text}')
     ax.set_xlim([0, 480])
     ax.set_xticks(np.arange(5)*120)
     ax.set_ylim([0, 240])
@@ -43,7 +52,7 @@ def setup_ax(ax, direction, meas_type, size):
     ax.set_zlim(0)
     ax.legend()
 
-def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3):
+def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3, linestyle='dashed', label=None):
     '''3d plot without figure and annotation
     Grid for the clocks and using it for a wireframe for pred
     Args:
@@ -60,12 +69,19 @@ def model_grid(m7, m4, pred, ax, color, if_cut=False, count=3):
         m7_edge = m7_grid[mask]
         pred_edge = pred[mask]
         plt.plot(m7_edge, m4_edge, pred_edge, color=color, zorder=2,
-                linestyle='dashed')
-    ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count, ccount=count,
-                      color=color, zorder=2, linestyle='dashed')
+                linestyle=linestyle)
+    if label is None:
+        ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count,
+                          ccount=count, color=color, zorder=2,
+                          linestyle=linestyle)
+    else:
+        ax.plot_wireframe(m7_grid, m4_grid, pred, rcount=count,
+                          ccount=count, color=color, zorder=2,
+                          linestyle=linestyle, label=label)
 
 def final3d_foreach(meas_configs, base_dir, meas_type, ax, 
-                   if_cut=False, linecount=3):
+                   if_cut=False, linecount=3, if_meas=True,
+                   if_mid_checkpoints=False):
     '''Draw the 3d plots for the given size and mems
     Args:
         cut: boolean if the invalid clocks should be cut off'''
@@ -86,35 +102,68 @@ def final3d_foreach(meas_configs, base_dir, meas_type, ax,
     meas_config_list = meas.config_to_config_list(meas_configs)
     grouped_config_list = meas.group_config_except(meas_config_list, ['clkM7', 'clkM4'])
     for color_idx, grouped_config in enumerate(grouped_config_list):        
-        data, config_list = meas.get_and_calc_meas(grouped_config, 
-                                                   meas_type, 
-                                                   base_dir)
-        clocks = [(x['clkM7'], x['clkM4']) for x in config_list]
-        errorbar_3d(clocks, data, ax, 
-                    f'{grouped_config["mem"]}_{grouped_config["cache"]}',
-                    cmap[color_idx])
-        
+        if if_meas:
+            data, config_list = meas.get_and_calc_meas(grouped_config, 
+                                                    meas_type, 
+                                                    base_dir)
+            clocks = [(x['clkM7'], x['clkM4']) for x in config_list]
+            errorbar_3d(clocks, data, ax, 
+                        f'{grouped_config["mem"]}_{grouped_config["cache"]}',
+                        cmap[color_idx])
+            
             # Predictions by the model
-        model.set_model_from_config(grouped_config)
-        m7, m4, pred = model.get_grid_from_config(grouped_config,
-                                                  meas_type)
-        model_grid(m7, m4, pred, ax, wire_cmap[color_idx], if_cut=if_cut,
-                   count=linecount)
-    setup_ax(ax, meas_configs['direction'][0], meas_type, 
+            model.set_model_from_config(grouped_config)
+            m7, m4, pred = model.get_grid_from_config(grouped_config,
+                                                    meas_type)
+            model_grid(m7, m4, pred, ax, wire_cmap[color_idx], if_cut=if_cut,
+                    count=linecount)
+        if if_mid_checkpoints:
+            for proc, style in zip(['m7', 'm4'], ['dotted', 'dashdot']):
+                # Measured points
+                if proc == 'm7':
+                    checkpoint_type = ('approximateSendTime'
+                                        if grouped_config['direction']=='s'
+                                        else 'approximateRecvTime')
+                else:
+                    checkpoint_type = ('approximateRecvTime'
+                                        if grouped_config['direction']=='s'
+                                        else 'approximateSendTime')
+                data, data_config_list = meas.get_and_calc_meas(
+                    grouped_config, meas_type, base_dir,
+                    checkpoint_type=checkpoint_type)
+                clocks = [(x['clkM7'], x['clkM4']) for x
+                            in data_config_list]
+                mid_errorbar_3d(clocks, data, ax, cmap[color_idx])
+                # Model prediction
+                mid_model_path = os.path.join(MODELS_PATH, base_dir,
+                                            f'models_{proc}.json')
+                mid_model = linear_model.LinearModel(mid_model_path,
+                                                     grouped_config['mem'],
+                                                     grouped_config['cache'],
+                                                     grouped_config['direction'])
+                m7, m4, pred = mid_model.get_grid_for_range(
+                    clocks, meas_configs['datasize'][0], meas_type)
+                model_grid(m7, m4, pred, ax, wire_cmap[color_idx],
+                            if_cut=if_cut, linestyle=style,
+                            label=f"{proc}, {grouped_config['mem']}_"
+                                  f"{grouped_config['cache']}, {base_dir}")
+    setup_ax(ax, meas_configs['direction'][0], meas_type,
              meas_configs['datasize'])
 
 def main():
     '''Reading in measurements, calculating mean, std then visualizing'''
     meas_type = 'latency'
-    base_dir = 'v6_O3'
+    base_dir = 'v8_O3'
+    if_mid_checkpoint = True
+    if_meas = False
     meas_configs = {
         'direction': ['r', 's'],
-        'clkM7': [60, 120, 240, 480],
+        'clkM7': [120, 240, 480],
         'clkM4': [60, 120, 240],
         'repeat': [256],
-        'datasize': [256],
-        'mem': ['D1', 'D2', 'D3'],
-        'cache': ['none'],
+        'datasize': [16376],
+        'mem':  ['D1'],
+        'cache': ['id', 'none'],
     }
     if_cut = False
     model_path = os.path.join(MODELS_PATH, base_dir, 'models_long.json')
@@ -139,15 +188,43 @@ def main():
                             if cfg['direction'] == direction
                                 and cfg['mem'] == mem
                                 and cfg['cache'] == cache]
-            
-            data, data_config_list = meas.get_and_calc_meas(grouped_config[0], meas_type, base_dir)
-            clocks = [(x['clkM7'], x['clkM4']) for x in data_config_list]
-            errorbar_3d(clocks, data, ax, f'{mem}_{cache}', cmap[clr])
-
-            # Predictions by the model
-            model = linear_model.LinearModel(model_path, mem, cache, direction)
-            m7, m4, pred = model.get_grid_for_range(clocks, meas_configs['datasize'][0], meas_type)
-            model_grid(m7, m4, pred, ax, wire_cmap[clr], if_cut=if_cut)
+            if if_meas:
+                data, data_config_list = meas.get_and_calc_meas(grouped_config[0], meas_type, base_dir)
+                clocks = [(x['clkM7'], x['clkM4']) for x in data_config_list]
+                errorbar_3d(clocks, data, ax, f'{mem}_{cache}', cmap[clr])
+                # Predictions by the model
+                model = linear_model.LinearModel(model_path, mem, cache, direction)
+                m7, m4, pred = model.get_grid_for_range(clocks, meas_configs['datasize'][0], meas_type)
+                model_grid(m7, m4, pred, ax, wire_cmap[clr], if_cut=if_cut)
+            # Checkpoints
+            if if_mid_checkpoint:
+                for proc, style in zip(['m7', 'm4'], ['dotted', 'dashdot']):
+                    # Measured points
+                    if proc == 'm7':
+                        checkpoint_type = ('approximateSendTime' 
+                                           if direction=='s'
+                                           else 'approximateRecvTime')
+                    else:
+                        checkpoint_type = ('approximateRecvTime' 
+                                           if direction=='s'
+                                           else 'approximateSendTime')
+                    data, data_config_list = meas.get_and_calc_meas(
+                        grouped_config[0], meas_type, base_dir, 
+                        checkpoint_type=checkpoint_type)
+                    clocks = [(x['clkM7'], x['clkM4']) for x
+                              in data_config_list]
+                    mid_errorbar_3d(clocks, data, ax, cmap[clr])
+                    # Model prediction
+                    mid_model_path = os.path.join(MODELS_PATH, base_dir, 
+                                                f'models_{proc}.json')
+                    mid_model = linear_model.LinearModel(mid_model_path,
+                                                         mem, cache,
+                                                         direction)
+                    m7, m4, pred = mid_model.get_grid_for_range(
+                        clocks, meas_configs['datasize'][0], meas_type)
+                    model_grid(m7, m4, pred, ax, wire_cmap[clr],
+                               if_cut=if_cut, linestyle=style,
+                               label=f'{proc}, {mem}_{cache}, {base_dir}')
         setup_ax(ax, direction, meas_type, meas_configs['datasize'])
     # show graph
     plt.show()

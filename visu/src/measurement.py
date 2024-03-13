@@ -145,6 +145,8 @@ def group_config_except(config_list: list[dict], blacklist:list[str]):
 def check_meas_content(meas_config: dict, content: pd.DataFrame) -> bool:
     '''Checks if the content is in sync with the meas configuration 
     parameters'''
+    if False in content['couldBlock']:
+        print("WARN: measurement has value where couldn't block")
     if (content['mem'][0] == meas_config['mem']
         and content['cache'][0] == meas_config['cache']
         and content['datasize'][0] == meas_config['datasize']
@@ -185,27 +187,32 @@ def get_path_for_meas(meas_config:dict, base_dir=None,
 
 def read_meas_from_file(
         meas_config: dict,
-        base_dir=None
-        ) -> tuple[np.ndarray, int]: # todo add the offsets
+        base_dir=None,
+        checkpoint_type='time'
+        ) -> tuple[np.ndarray, int]:
     '''Returns the measurement values as a numpy array to the given 
     measurement config
 
     Args:
         meas_config: dict of the configuration parameters of the meas
         base_dir: base directory relative to MEASUREMENT_PATH
+        checkpoint_type: the field in the input file which should be read
         
     Returns:
-        meas_values: ndarray of measurement values
+        meas_values: ndarray of measurement values (type depends on
+            checkpoint_type)
         timer: timer clk [MHz]'''
     dir_prefix, filename = get_path_for_meas(meas_config, base_dir)
     path = os.path.join(MEASUREMENTS_PATH, dir_prefix, filename)
     content = pd.read_csv(path, encoding='utf-8')
     assert check_meas_content(meas_config, content)
-    return content['time'].to_numpy(), content['timer'][0] / 1_000_000
+    return (content[checkpoint_type].to_numpy(),
+            content['timer'][0] / 1_000_000)
 
 def read_meas_from_files(
         meas_configs,
-        base_dir=None
+        base_dir=None,
+        checkpoint_type='time'
         ) -> tuple[list[np.ndarray], list[int], list[dict]]:
     '''Read all files for all possible configurations
 
@@ -230,12 +237,14 @@ def read_meas_from_files(
     all_meas_values, timers = [], []
     for meas_config in meas_config_list:
         meas_values, timer = read_meas_from_file(meas_config,
-                                                 base_dir)
+                                                 base_dir,
+                                                 checkpoint_type)
         all_meas_values.append(meas_values)
         timers.append(timer)
     return all_meas_values, timers, meas_config_list
 
-def get_and_calc_meas(meas_configs, meas_type, base_dir=None):
+def get_and_calc_meas(meas_configs, meas_type, base_dir=None,
+                      checkpoint_type='time'):
     '''Reads measurement values (mean, min, max) and calculates datarates
         or latencies
 
@@ -251,7 +260,8 @@ def get_and_calc_meas(meas_configs, meas_type, base_dir=None):
         meas_config_list: list of config dicts'''
     (all_meas_values,
         timers,
-        meas_config_list) = read_meas_from_files(meas_configs, base_dir)
+        meas_config_list) = read_meas_from_files(meas_configs, base_dir,
+                                                 checkpoint_type)
     all_meas_values = np.vstack(all_meas_values)
     timers = np.asarray(timers)
     sizes = [x['datasize'] for x in meas_config_list]
@@ -309,7 +319,7 @@ def main():
             'mem': ['D1', 'D2', 'D3'],
             'cache': ['none', 'i', 'd', 'id'],
     }
-    base_dir = 'v7_O3'
+    base_dir = 'v13_Ofast'
 
     config_list = config_to_config_list(meas_configs)
     # to shuffle completely randomly

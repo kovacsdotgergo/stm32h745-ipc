@@ -8,7 +8,7 @@ static params_cache g_cache = CACHE_INIT;
 
 void ctrl_initInterrupts(void) {
     /* SW interrupt for end of measurement */
-    HAL_NVIC_SetPriority(END_MEAS_INT_EXTI_IRQ, 0xFU, 0U);
+    HAL_NVIC_SetPriority(END_MEAS_INT_EXTI_IRQ, 14U, 1U);
     HAL_NVIC_EnableIRQ(END_MEAS_INT_EXTI_IRQ);
     /* SW interrupt for start of measurement */
     HAL_EXTI_EdgeConfig(START_MEAS_INT_EXTI_LINE, EXTI_RISING_EDGE);
